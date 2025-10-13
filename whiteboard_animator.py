@@ -2601,16 +2601,19 @@ def draw_masked_object(
         range_h_start = selected_ind_val[1] * variables.split_len
         range_h_end = range_h_start + tile_wd # MODIFIÉ pour utiliser la taille réelle de la tuile
 
-        # Obtenir la tuile correspondante de l'image originale en couleur
-        original_tile = variables.img[range_v_start:range_v_end, range_h_start:range_h_end]
+        # Obtenir la tuile correspondante de l'image en niveaux de gris pour l'animation
+        # (La couleur sera appliquée à la fin)
+        gray_tile = variables.img_gray[range_v_start:range_v_end, range_h_start:range_h_end]
         
         # Appliquer la tuile au cadre de dessin
         if mode == 'eraser':
             # En mode eraser, on efface (met en blanc/noir) la tuile
             variables.drawn_frame[range_v_start:range_v_end, range_h_start:range_h_end] = 255
         else:
-            # En mode normal, on dessine la tuile
-            variables.drawn_frame[range_v_start:range_v_end, range_h_start:range_h_end] = original_tile
+            # En mode normal, dessiner en niveaux de gris pendant l'animation
+            # Convertir la tuile en niveaux de gris en BGR (3 canaux)
+            gray_tile_bgr = cv2.cvtColor(gray_tile, cv2.COLOR_GRAY2BGR)
+            variables.drawn_frame[range_v_start:range_v_end, range_h_start:range_h_end] = gray_tile_bgr
 
         # Coordonnées pour le centre de la main/eraser
         hand_coord_x = range_h_start + int(tile_wd / 2)
