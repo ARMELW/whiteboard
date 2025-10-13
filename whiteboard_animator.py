@@ -2611,9 +2611,18 @@ def draw_masked_object(
             variables.drawn_frame[range_v_start:range_v_end, range_h_start:range_h_end] = 255
         else:
             # En mode normal, dessiner en niveaux de gris pendant l'animation
+            # Mais seulement où le threshold indique du contenu (pixels noirs < threshold)
+            # Créer un masque basé sur le threshold (tile_to_draw)
+            content_mask = tile_to_draw < black_pixel_threshold
+            
             # Convertir la tuile en niveaux de gris en BGR (3 canaux)
             gray_tile_bgr = cv2.cvtColor(gray_tile, cv2.COLOR_GRAY2BGR)
-            variables.drawn_frame[range_v_start:range_v_end, range_h_start:range_h_end] = gray_tile_bgr
+            
+            # Appliquer seulement les pixels de contenu (où le masque est True)
+            # Cela permet de dessiner uniquement les traits/bords, pas le fond
+            frame_region = variables.drawn_frame[range_v_start:range_v_end, range_h_start:range_h_end]
+            frame_region[content_mask] = gray_tile_bgr[content_mask]
+            variables.drawn_frame[range_v_start:range_v_end, range_h_start:range_h_end] = frame_region
 
         # Coordonnées pour le centre de la main/eraser
         hand_coord_x = range_h_start + int(tile_wd / 2)
