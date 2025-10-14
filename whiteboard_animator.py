@@ -881,8 +881,13 @@ def draw_svg_path_handwriting(
             current_char_idx += 1
     
     # Final reveal - overlay complete image
+    # Only overlay where the current layer has content (non-white pixels)
+    # This preserves previously drawn layers
     if mode != 'eraser':
-        variables.drawn_frame[:, :, :] = variables.img
+        # Create a mask for pixels that belong to the current layer (non-white pixels)
+        content_mask = np.any(variables.img < 250, axis=2)
+        # Apply the colored image only where there is content
+        variables.drawn_frame[content_mask] = variables.img[content_mask]
 
 
 def euc_dist(arr1, point):
@@ -2509,8 +2514,13 @@ def draw_text_handwriting(
             print(f"Segments restants: {remaining}")
     
     # After drawing all segments, overlay the complete colored image
+    # Only overlay where the current layer has content (non-white pixels)
+    # This preserves previously drawn layers
     if mode != 'eraser':
-        variables.drawn_frame[:, :, :] = variables.img
+        # Create a mask for pixels that belong to the current layer (non-white pixels)
+        content_mask = np.any(variables.img < 250, axis=2)
+        # Apply the colored image only where there is content
+        variables.drawn_frame[content_mask] = variables.img[content_mask]
 
 
 def draw_masked_object(
@@ -2710,12 +2720,16 @@ def draw_masked_object(
 
     # Après avoir dessiné toutes les lignes, superposer l'objet original en couleur
     # (sauf en mode eraser où on veut garder l'état effacé)
+    # Only overlay where the current layer has content to preserve previously drawn layers
     if mode != 'eraser':
         if object_mask is not None:
             object_ind = np.where(object_mask == 255)
             variables.drawn_frame[object_ind] = variables.img[object_ind]
         else:
-            variables.drawn_frame[:, :, :] = variables.img
+            # Create a mask for pixels that belong to the current layer (non-white pixels)
+            content_mask = np.any(variables.img < 250, axis=2)
+            # Apply the colored image only where there is content
+            variables.drawn_frame[content_mask] = variables.img[content_mask]
 
 
 def draw_whiteboard_animations(

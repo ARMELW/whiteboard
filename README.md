@@ -17,6 +17,7 @@ Application de création d'animations de type "dessin sur tableau blanc" (whiteb
 - ✅ **Animations avancées** - Effets de zoom-in/zoom-out post-dessin
 - ✅ **Gomme intelligente** - Effet d'effacement naturel pour les couches superposées
 - ✅ **Couches multiples (layers)** - Superposition d'images sur une même slide avec hiérarchie
+- ✅ **🆕 Dessin progressif par couche** - Animation additive préservant les couches précédentes (style VideoScribe/Doodly)
 - ✅ **Qualité vidéo améliorée** - CRF ajustable pour une qualité optimale
 - ✅ **Export multi-formats** - Support 1:1, 16:9, 9:16 en HD
 - ✅ **Filigrane (watermark)** - Ajout de logo/texte avec position et opacité personnalisables
@@ -827,7 +828,11 @@ Les couches sont dessinées séquentiellement selon leur z_index, permettant de 
 - **Animations par étapes** : Dessiner d'abord le fond, puis ajouter des éléments progressivement
 - **Créations style "Insta Doodle"** : Superposition d'images avec positions et timing personnalisés
 
-📖 **Pour plus de détails, consultez le [Guide complet des couches (LAYERS_GUIDE.md)](LAYERS_GUIDE.md)**
+**🎨 Dessin progressif par couche** : Les couches sont dessinées séquentiellement tout en préservant les couches précédentes, créant un effet additif naturel similaire à VideoScribe et Doodly.
+
+📖 **Pour plus de détails, consultez :**
+- [Guide complet des couches (LAYERS_GUIDE.md)](LAYERS_GUIDE.md)
+- [Guide du dessin progressif par couche (PROGRESSIVE_LAYER_DRAWING.md)](PROGRESSIVE_LAYER_DRAWING.md)
 
 
 # Avec transition de type "push left" et durée personnalisée
