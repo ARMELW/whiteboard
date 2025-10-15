@@ -2,6 +2,20 @@
 
 Application de création d'animations de type "dessin sur tableau blanc" (whiteboard animation) à partir d'images.
 
+## 📚 Documentation Complète
+
+**→ [GUIDE_COMPLET.md](GUIDE_COMPLET.md) - Documentation exhaustive de toutes les fonctionnalités**
+
+Ce guide de 2800+ lignes couvre :
+- ✅ Toutes les commandes CLI avec exemples
+- ✅ Format de configuration JSON complet avec tous les paramètres
+- ✅ Toutes les fonctionnalités avancées (layers, caméra, particules, audio, formes, texte, timeline)
+- ✅ Exemples pratiques par cas d'usage
+- ✅ Workflows et meilleures pratiques
+- ✅ Guide de référence rapide
+
+**C'est LA ressource ultime pour exploiter whiteboard-cli au maximum ! 🚀**
+
 ## Fonctionnalités
 
 - ✅ Génération de vidéos d'animation de dessin à partir d'images
