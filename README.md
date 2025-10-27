@@ -429,6 +429,33 @@ Créez des diagrammes, des schémas et des illustrations techniques avec des for
 - **Lignes** - Lignes droites entre deux points
 - **Flèches** - Flèches avec tête personnalisable
 
+### 🆕 Type Flèche (Arrow Type)
+
+Un nouveau type de couche `arrow` permet d'animer des flèches de manière progressive, comme si on les dessinait à la main :
+
+```json
+{
+  "type": "arrow",
+  "arrow_config": {
+    "start": [200, 400],
+    "end": [800, 400],
+    "color": "#E74C3C",
+    "fill_color": "#F1948A",
+    "stroke_width": 5,
+    "arrow_size": 40,
+    "duration": 2.0
+  },
+  "z_index": 1,
+  "mode": "draw"
+}
+```
+
+**Différence avec les flèches de type shape:**
+- **Type `arrow`**: Animation progressive naturelle, durée contrôlée
+- **Type `shape` avec `shape: "arrow"`**: Dessin standard par tuiles
+
+Voir [ARROW_TYPE_GUIDE.md](ARROW_TYPE_GUIDE.md) pour la documentation complète.
+
 ### Exemple d'utilisation
 
 ```json
