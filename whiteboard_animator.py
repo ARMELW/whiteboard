@@ -511,6 +511,114 @@ def render_shape_to_image(shape_config, target_width, target_height):
     return img
 
 
+def draw_arrow_progressive(canvas, arrow_config, progress, target_width, target_height):
+    """Draw an arrow progressively from start to a point along the path.
+    
+    This function draws an arrow as if writing it, showing only the portion
+    from the start point to the current progress point.
+    
+    Args:
+        canvas: Canvas to draw on (numpy array, BGR format)
+        arrow_config: Dictionary with arrow configuration:
+            - start: Start point [x, y]
+            - end: End point [x, y]
+            - color: Arrow color as RGB tuple or hex string (default: (0, 0, 0))
+            - fill_color: Fill color for arrow head (default: None)
+            - stroke_width: Line thickness (default: 2)
+            - arrow_size: Arrow head size (default: 20)
+        progress: Progress from 0 to 1 (0 = start, 1 = fully drawn)
+        target_width: Canvas width
+        target_height: Canvas height
+        
+    Returns:
+        Canvas with progressively drawn arrow
+    """
+    result = canvas.copy()
+    
+    if progress <= 0:
+        return result
+    
+    # Extract configuration
+    start = arrow_config.get('start', [100, 100])
+    end = arrow_config.get('end', [700, 100])
+    color = arrow_config.get('color', (0, 0, 0))
+    fill_color = arrow_config.get('fill_color', None)
+    stroke_width = arrow_config.get('stroke_width', 2)
+    arrow_size = arrow_config.get('arrow_size', 20)
+    
+    # Convert hex color to BGR if needed
+    def hex_to_bgr(hex_color):
+        if isinstance(hex_color, str) and hex_color.startswith('#'):
+            rgb = tuple(int(hex_color[i:i+2], 16) for i in (1, 3, 5))
+            return (rgb[2], rgb[1], rgb[0])  # Convert RGB to BGR
+        elif isinstance(hex_color, (list, tuple)) and len(hex_color) == 3:
+            return (hex_color[2], hex_color[1], hex_color[0])  # Convert RGB to BGR
+        return hex_color
+    
+    color = hex_to_bgr(color)
+    if fill_color:
+        fill_color = hex_to_bgr(fill_color)
+    
+    # Calculate current position based on progress
+    pt1 = (int(start[0]), int(start[1]))
+    current_x = start[0] + progress * (end[0] - start[0])
+    current_y = start[1] + progress * (end[1] - start[1])
+    pt_current = (int(current_x), int(current_y))
+    
+    # Draw the shaft from start to current position
+    cv2.line(result, pt1, pt_current, color, stroke_width)
+    
+    # If we're at least 80% complete, start drawing the arrow head
+    if progress >= 0.8:
+        # Calculate arrow head progress (from 0.8 to 1.0 maps to 0 to 1)
+        head_progress = (progress - 0.8) / 0.2
+        
+        pt2 = (int(end[0]), int(end[1]))
+        
+        # Calculate arrow head angle
+        angle = np.arctan2(end[1] - start[1], end[0] - start[0])
+        arrow_angle = np.pi / 6  # 30 degrees
+        
+        # Arrow head points
+        p1 = (
+            int(pt2[0] - arrow_size * np.cos(angle - arrow_angle)),
+            int(pt2[1] - arrow_size * np.sin(angle - arrow_angle))
+        )
+        p2 = (
+            int(pt2[0] - arrow_size * np.cos(angle + arrow_angle)),
+            int(pt2[1] - arrow_size * np.sin(angle + arrow_angle))
+        )
+        
+        # Draw arrow head with progressive appearance
+        if head_progress < 0.5:
+            # Draw first line of arrow head
+            line_progress = head_progress / 0.5
+            p1_partial = (
+                int(pt2[0] + (1 - line_progress) * (pt2[0] - p1[0])),
+                int(pt2[1] + (1 - line_progress) * (pt2[1] - p1[1]))
+            )
+            cv2.line(result, pt2, p1_partial, color, stroke_width)
+        else:
+            # First line fully drawn
+            cv2.line(result, pt2, p1, color, stroke_width)
+            
+            # Draw second line of arrow head
+            line_progress = (head_progress - 0.5) / 0.5
+            p2_partial = (
+                int(pt2[0] + (1 - line_progress) * (pt2[0] - p2[0])),
+                int(pt2[1] + (1 - line_progress) * (pt2[1] - p2[1]))
+            )
+            cv2.line(result, pt2, p2_partial, color, stroke_width)
+            
+            # Fill arrow head if fill color is specified and lines are complete
+            if fill_color and line_progress >= 1.0:
+                arrow_pts = np.array([pt2, p1, p2], np.int32)
+                arrow_pts = arrow_pts.reshape((-1, 1, 2))
+                cv2.fillPoly(result, [arrow_pts], fill_color)
+    
+    return result
+
+
 def extract_character_paths(text, font_path, font_size):
     """
     Extract vector paths from font characters.
@@ -2916,6 +3024,17 @@ def draw_layered_whiteboard_animations(
                     variables.resize_wd,
                     variables.resize_ht
                 )
+            elif layer_type == 'arrow':
+                # Render arrow with path animation
+                arrow_config = layer.get('arrow_config', {})
+                if not arrow_config or 'start' not in arrow_config or 'end' not in arrow_config:
+                    print(f"    ⚠️ Configuration de flèche manquante ou invalide (start/end requis)")
+                    continue
+                
+                print(f"    ➡️  Génération de flèche animée: start={arrow_config.get('start')}, end={arrow_config.get('end')}")
+                # Create a white canvas for the arrow
+                layer_img_original = np.ones((variables.resize_ht, variables.resize_wd, 3), dtype=np.uint8) * 255
+                # Arrow will be drawn progressively in the drawing loop below
             else:
                 # Charger l'image de la couche
                 image_path = layer.get('image_path', '')
@@ -3114,6 +3233,41 @@ def draw_layered_whiteboard_animations(
                             skip_rate=layer_skip_rate,
                             mode='draw'
                         )
+                elif layer_type == 'arrow':
+                    # Draw arrow progressively as a path animation
+                    arrow_config = layer.get('arrow_config', {})
+                    print(f"    ➡️  Dessin progressif de la flèche")
+                    
+                    # Calculate number of frames for arrow drawing
+                    arrow_duration = arrow_config.get('duration', 2.0)  # default 2 seconds
+                    arrow_frames = int(arrow_duration * variables.frame_rate)
+                    
+                    # Draw arrow progressively
+                    for frame_idx in range(arrow_frames):
+                        progress = (frame_idx + 1) / arrow_frames
+                        
+                        # Draw arrow on current frame
+                        frame_with_arrow = draw_arrow_progressive(
+                            layer_vars.drawn_frame.copy(),
+                            arrow_config,
+                            progress,
+                            variables.resize_wd,
+                            variables.resize_ht
+                        )
+                        
+                        layer_vars.drawn_frame = frame_with_arrow
+                        
+                        # Apply watermark if configured
+                        if variables.watermark_path:
+                            frame_with_arrow = apply_watermark(
+                                frame_with_arrow, variables.watermark_path,
+                                variables.watermark_position, variables.watermark_opacity,
+                                variables.watermark_scale
+                            )
+                        
+                        # Write frame to video
+                        variables.video_object.write(frame_with_arrow)
+                        layer_vars.frames_written += 1
                 else:
                     draw_masked_object(
                         variables=layer_vars,
@@ -3806,6 +3960,23 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
                 print(f"    🔷 Génération de forme pour composition: {shape_type}")
                 layer_img = render_shape_to_image(
                     shape_config,
+                    target_width,
+                    target_height
+                )
+            elif layer_type == 'arrow':
+                # Render arrow fully drawn (for composition, no animation)
+                arrow_config = layer.get('arrow_config', {})
+                if not arrow_config or 'start' not in arrow_config or 'end' not in arrow_config:
+                    print(f"    ⚠️ Configuration de flèche manquante ou invalide")
+                    continue
+                
+                print(f"    ➡️  Génération de flèche pour composition")
+                # Create white canvas and draw fully completed arrow
+                layer_img = np.ones((target_height, target_width, 3), dtype=np.uint8) * 255
+                layer_img = draw_arrow_progressive(
+                    layer_img,
+                    arrow_config,
+                    1.0,  # Fully drawn
                     target_width,
                     target_height
                 )
