@@ -5,6 +5,7 @@ import sys
 import json
 import tempfile
 import subprocess
+import os
 
 def test_arrow_type_cli():
     """Test arrow type via CLI."""
@@ -43,19 +44,22 @@ def test_arrow_type_cli():
     
     print(f"  Config file: {config_path}")
     
-    # Run whiteboard_animator
-    cmd = [
-        'python', 'whiteboard_animator.py',
-        '--config', config_path,
-        '--split-len', '15',
-        '--frame-rate', '10'  # Low frame rate for fast test
-    ]
-    
-    print(f"  Running: {' '.join(cmd)}")
     try:
+        # Get current directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Run whiteboard_animator
+        cmd = [
+            'python', 'whiteboard_animator.py',
+            '--config', config_path,
+            '--split-len', '15',
+            '--frame-rate', '10'  # Low frame rate for fast test
+        ]
+        
+        print(f"  Running: {' '.join(cmd)}")
         result = subprocess.run(
             cmd,
-            cwd='/home/runner/work/whiteboard/whiteboard',
+            cwd=current_dir,
             capture_output=True,
             text=True,
             timeout=60
@@ -64,21 +68,26 @@ def test_arrow_type_cli():
         print("\n  STDOUT:")
         print("  " + "\n  ".join(result.stdout.split('\n')[-30:]))
         
-        if result.returncode == 0:
-            print("\n  ✓ CLI test passed!")
-            return True
-        else:
-            print(f"\n  ✗ CLI test failed with return code {result.returncode}")
-            if result.stderr:
-                print("  STDERR:")
-                print("  " + "\n  ".join(result.stderr.split('\n')))
-            return False
+        success = result.returncode == 0
+        
+        if not success and result.stderr:
+            print("  STDERR:")
+            print("  " + "\n  ".join(result.stderr.split('\n')))
+        
+        return success
+        
     except subprocess.TimeoutExpired:
         print("  ✗ CLI test timed out")
         return False
     except Exception as e:
         print(f"  ✗ CLI test failed with exception: {e}")
         return False
+    finally:
+        # Clean up temp file
+        try:
+            os.unlink(config_path)
+        except:
+            pass
 
 
 def main():
