@@ -4889,6 +4889,32 @@ def process_multiple_images(image_paths, split_len, frame_rate, object_skip_rate
                     img_wd, img_ht = 1920, 1080
                 print(f"  Résolution par défaut (texte uniquement): {img_wd}x{img_ht}")
             
+            # Check for canvas dimensions in config and scale positions if needed
+            canvas_width = per_slide_config.get('canvas_width', 1920) if per_slide_config else 1920
+            canvas_height = per_slide_config.get('canvas_height', 1080) if per_slide_config else 1080
+            
+            # Calculate scaling factors if canvas dimensions differ from target dimensions
+            scale_x = img_wd / canvas_width
+            scale_y = img_ht / canvas_height
+            
+            if scale_x != 1.0 or scale_y != 1.0:
+                print(f"  📏 Canvas original: {canvas_width}x{canvas_height}")
+                print(f"  📏 Scaling positions: x={scale_x:.3f}, y={scale_y:.3f}")
+                
+                # Scale all layer positions
+                if layers:
+                    for layer in layers:
+                        if 'position' in layer and layer['position']:
+                            layer['position']['x'] = layer['position']['x'] * scale_x
+                            layer['position']['y'] = layer['position']['y'] * scale_y
+                        
+                        # Scale text positions within text_config
+                        if 'text_config' in layer and layer['text_config']:
+                            text_cfg = layer['text_config']
+                            if 'position' in text_cfg and text_cfg['position']:
+                                text_cfg['position']['x'] = text_cfg['position']['x'] * scale_x
+                                text_cfg['position']['y'] = text_cfg['position']['y'] * scale_y
+            
             # Layers and slide_config already retrieved above
             if layers:
                 print(f"  🎨 Mode multi-couches détecté ({len(layers)} couche(s))")

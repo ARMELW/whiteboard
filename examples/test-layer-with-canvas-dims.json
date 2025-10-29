@@ -1,0 +1,29 @@
+{
+  "canvas_width": 1920,
+  "canvas_height": 1080,
+  "slides": [
+    {
+      "index": 0,
+      "duration": 2,
+      "skip_rate": 10,
+      "layers": [
+        {
+          "type": "text",
+          "mode": "draw",
+          "text_config": {
+            "text": "Canvas: 1920x1080",
+            "font": "Arial",
+            "size": 48,
+            "style": "bold",
+            "color": [0, 0, 255],
+            "align": "center",
+            "position": {
+              "x": 960,
+              "y": 540
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

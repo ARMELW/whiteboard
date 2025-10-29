@@ -51,7 +51,8 @@ Avec cette configuration:
 
 ## Format du fichier JSON
 
-Le fichier de configuration contient deux sections principales :
+Le fichier de configuration contient plusieurs sections :
+- `canvas_width` et `canvas_height` : Dimensions du canvas source (optionnel)
 - `slides` : Configuration spécifique à chaque slide
 - `transitions` : Configuration des transitions entre les slides
 
@@ -59,6 +60,8 @@ Le fichier de configuration contient deux sections principales :
 
 ```json
 {
+  "canvas_width": 1920,
+  "canvas_height": 1080,
   "slides": [
     {
       "index": 0,
@@ -92,6 +95,31 @@ Le fichier de configuration contient deux sections principales :
   ]
 }
 ```
+
+## Canvas Dimensions (Optionnel)
+
+### canvas_width et canvas_height
+
+Ces paramètres définissent les dimensions du canvas source utilisé dans l'éditeur. Si les dimensions du canvas source diffèrent des dimensions de la vidéo de sortie (définies par `--aspect-ratio`), toutes les positions des couches seront automatiquement mises à l'échelle proportionnellement.
+
+| Propriété | Type | Description | Par défaut |
+|-----------|------|-------------|------------|
+| `canvas_width` | int | Largeur du canvas source en pixels | 1920 |
+| `canvas_height` | int | Hauteur du canvas source en pixels | 1080 |
+
+**Exemple d'utilisation:**
+Si votre éditeur utilise un canvas de 1200x800 mais vous voulez générer une vidéo en 1920x1080:
+```json
+{
+  "canvas_width": 1200,
+  "canvas_height": 800,
+  "slides": [ ... ]
+}
+```
+
+Les positions de toutes les couches seront automatiquement converties:
+- Position X sera multipliée par 1920/1200 = 1.6
+- Position Y sera multipliée par 1080/800 = 1.35
 
 ## Section `slides`
 
