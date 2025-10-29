@@ -29,6 +29,8 @@ try:
     PYDUB_AVAILABLE = True
 except ImportError:
     PYDUB_AVAILABLE = False
+    # Create dummy type for type hints when pydub is not available
+    AudioSegment = None
     print("⚠️ Warning: pydub not installed. Audio features will be disabled.")
     print("   Install with: pip install pydub")
 
