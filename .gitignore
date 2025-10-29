@@ -14,3 +14,4 @@ build/
 test_images/
 test_*.json
 test_output/
+demo_scene_cameras_config.json
