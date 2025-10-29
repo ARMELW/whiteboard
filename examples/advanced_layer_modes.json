@@ -5,31 +5,11 @@
       "duration": 12,
       "layers": [
         {
-          "image_path": "demo/1.jpg",
+          "image_path": "doodle/1.jpg",
           "position": {"x": 0, "y": 0},
           "z_index": 1,
           "skip_rate": 10,
           "mode": "draw"
-        },
-        {
-          "image_path": "demo/2.jpg",
-          "position": {"x": 150, "y": 100},
-          "z_index": 2,
-          "skip_rate": 15,
-          "scale": 0.4,
-          "mode": "eraser",
-          "entrance_animation": {
-            "type": "fade_in",
-            "duration": 1.0
-          }
-        },
-        {
-          "image_path": "demo/2.png",
-          "position": {"x": 100, "y": 100},
-          "z_index": 2,
-          "skip_rate": 15,
-          "scale": 0.4,
-          "mode": "eraser"
         }
       ]
     }

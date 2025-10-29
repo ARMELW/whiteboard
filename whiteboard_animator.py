@@ -12,6 +12,9 @@ import argparse
 from PIL import Image, ImageDraw, ImageFont
 from fontTools.ttLib import TTFont
 from fontTools.pens.recordingPen import RecordingPen
+import urllib.request
+import urllib.error
+import tempfile
 
 # Import performance optimizer module
 try:
@@ -95,6 +98,57 @@ DEFAULT_MAIN_IMG_DURATION = 3
 DEFAULT_CRF = 18  # Lower = better quality (0-51, 18 is visually lossless)
 
 # --- Classes et Fonctions ---
+
+def load_image_from_url_or_path(image_source):
+    """Charge une image depuis une URL ou un chemin local.
+    
+    Args:
+        image_source: URL (http/https) ou chemin local de l'image
+        
+    Returns:
+        numpy array (BGR) de l'image, ou None si erreur
+    """
+    if isinstance(image_source, str) and (image_source.startswith('http://') or image_source.startswith('https://')):
+        # C'est une URL - télécharger et charger
+        try:
+            print(f"    📥 Téléchargement de l'image depuis URL...")
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
+                tmp_path = tmp_file.name
+                urllib.request.urlretrieve(image_source, tmp_path)
+            
+            # Charger l'image téléchargée
+            img = cv2.imread(tmp_path)
+            
+            # Nettoyer le fichier temporaire
+            try:
+                os.unlink(tmp_path)
+            except:
+                pass
+            
+            if img is None:
+                print(f"    ⚠️ Impossible de lire l'image téléchargée")
+                return None
+            
+            print(f"    ✅ Image téléchargée avec succès")
+            return img
+        except urllib.error.URLError as e:
+            print(f"    ⚠️ Erreur de téléchargement: {e}")
+            return None
+        except Exception as e:
+            print(f"    ⚠️ Erreur lors du chargement de l'URL: {e}")
+            return None
+    else:
+        # C'est un chemin local
+        if not os.path.exists(image_source):
+            print(f"    ⚠️ Fichier local introuvable: {image_source}")
+            return None
+        
+        img = cv2.imread(image_source)
+        if img is None:
+            print(f"    ⚠️ Impossible de lire l'image: {image_source}")
+            return None
+        
+        return img
 
 def render_text_to_image(text_config, target_width, target_height):
     """Render text to an image using PIL/Pillow with advanced multilingual and effect support.
@@ -3036,18 +3090,17 @@ def draw_layered_whiteboard_animations(
                 layer_img_original = np.ones((variables.resize_ht, variables.resize_wd, 3), dtype=np.uint8) * 255
                 # Arrow will be drawn progressively in the drawing loop below
             else:
-                # Charger l'image de la couche
+                # Charger l'image de la couche (URL ou chemin local)
                 image_path = layer.get('image_path', '')
-                if not os.path.isabs(image_path):
-                    image_path = os.path.join(base_path, image_path)
                 
-                if not os.path.exists(image_path):
-                    print(f"    ⚠️ Image de couche introuvable: {image_path}")
-                    continue
+                # Résoudre chemin local si ce n'est pas une URL
+                if not (image_path.startswith('http://') or image_path.startswith('https://')):
+                    if not os.path.isabs(image_path):
+                        image_path = os.path.join(base_path, image_path)
                 
-                layer_img_original = cv2.imread(image_path)
+                # Charger l'image avec support URLs
+                layer_img_original = load_image_from_url_or_path(image_path)
                 if layer_img_original is None:
-                    print(f"    ⚠️ Impossible de lire l'image: {image_path}")
                     continue
             
             # Appliquer l'échelle
@@ -3059,8 +3112,8 @@ def draw_layered_whiteboard_animations(
             
             # Obtenir position et opacité
             position = layer.get('position', {'x': 0, 'y': 0})
-            x_offset = position.get('x', 0)
-            y_offset = position.get('y', 0)
+            x_offset = int(position.get('x', 0))  # Convertir en entier
+            y_offset = int(position.get('y', 0))  # Convertir en entier
             opacity = layer.get('opacity', 1.0)
             layer_skip_rate = layer.get('skip_rate', variables.object_skip_rate)
             
@@ -3278,6 +3331,11 @@ def draw_layered_whiteboard_animations(
             # Accumulate frame count from this layer
             variables.frames_written += layer_vars.frames_written
             
+            # Extract the drawn layer content from the positioned region
+            # layer_vars.drawn_frame contains the drawing from layer_full (which was positioned)
+            # We need to extract only the content region and place it at the correct position
+            layer_drawn_region = layer_vars.drawn_frame[y1:y2, x1:x2] if (y2 > y1 and x2 > x1) else np.ones((1, 1, 3), dtype=np.uint8) * 255
+            
             # Create mask for this layer's content (from the original layer image position)
             layer_mask = np.any(layer_full < 250, axis=2).astype(np.float32)
             layer_mask_3d = np.stack([layer_mask] * 3, axis=2)
@@ -3404,22 +3462,31 @@ def draw_layered_whiteboard_animations(
                 variables.drawn_frame = anim_frame.copy()
             else:
                 # Final blend of layer (only when path animation is NOT used)
-                if opacity < 1.0:
-                    # Blend only the layer's pixels
-                    # Where layer has content: blend old background with new layer content
-                    # Where layer has no content: keep the old frame unchanged
-                    layer_content = layer_vars.drawn_frame * layer_mask_3d
-                    old_background = variables.drawn_frame * layer_mask_3d
-                    blended_layer = cv2.addWeighted(old_background, 1 - opacity, layer_content, opacity, 0)
+                # Use the positioned region from the drawn layer
+                if y2 > y1 and x2 > x1:
+                    # Extract the drawn region that corresponds to the layer position
+                    layer_drawn_region = layer_vars.drawn_frame[y1:y2, x1:x2]
                     
-                    # Combine: blended layer where mask=1, old frame where mask=0
-                    variables.drawn_frame = (layer_mask_3d * blended_layer + 
-                                            (1 - layer_mask_3d) * variables.drawn_frame).astype(np.uint8)
+                    if opacity < 1.0:
+                        # Blend with opacity
+                        old_region = variables.drawn_frame[y1:y2, x1:x2]
+                        blended = cv2.addWeighted(old_region, 1 - opacity, layer_drawn_region, opacity, 0)
+                        variables.drawn_frame[y1:y2, x1:x2] = blended
+                    else:
+                        # No opacity blending, just overlay where layer has content
+                        variables.drawn_frame[y1:y2, x1:x2] = layer_drawn_region
                 else:
-                    # No opacity blending, just overlay the layer where it has content
-                    variables.drawn_frame = np.where(layer_mask_3d > 0, 
-                                                    layer_vars.drawn_frame, 
-                                                    variables.drawn_frame).astype(np.uint8)
+                    # Fallback to full frame blending if dimensions are invalid
+                    if opacity < 1.0:
+                        layer_content = layer_vars.drawn_frame * layer_mask_3d
+                        old_background = variables.drawn_frame * layer_mask_3d
+                        blended_layer = cv2.addWeighted(old_background, 1 - opacity, layer_content, opacity, 0)
+                        variables.drawn_frame = (layer_mask_3d * blended_layer + 
+                                                (1 - layer_mask_3d) * variables.drawn_frame).astype(np.uint8)
+                    else:
+                        variables.drawn_frame = np.where(layer_mask_3d > 0, 
+                                                        layer_vars.drawn_frame, 
+                                                        variables.drawn_frame).astype(np.uint8)
             
             # Apply exit animation after layer is complete (if this is the last layer or configured)
             if exit_anim and exit_anim.get('type') != 'none':
@@ -3981,19 +4048,17 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
                     target_height
                 )
             else:
-                # Résoudre le chemin de l'image
+                # Résoudre et charger l'image de la couche (URL ou chemin local)
                 image_path = layer.get('image_path', '')
-                if not os.path.isabs(image_path):
-                    image_path = os.path.join(base_path, image_path)
                 
-                if not os.path.exists(image_path):
-                    print(f"    ⚠️ Image de couche introuvable: {image_path}")
-                    continue
+                # Résoudre chemin local si ce n'est pas une URL
+                if not (image_path.startswith('http://') or image_path.startswith('https://')):
+                    if not os.path.isabs(image_path):
+                        image_path = os.path.join(base_path, image_path)
                 
-                # Lire l'image de la couche
-                layer_img = cv2.imread(image_path)
+                # Charger l'image avec support URLs
+                layer_img = load_image_from_url_or_path(image_path)
                 if layer_img is None:
-                    print(f"    ⚠️ Impossible de lire l'image: {image_path}")
                     continue
             
             # Appliquer l'échelle si spécifiée
@@ -4005,8 +4070,8 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
             
             # Obtenir la position
             position = layer.get('position', {'x': 0, 'y': 0})
-            x = position.get('x', 0)
-            y = position.get('y', 0)
+            x = int(position.get('x', 0))  # Convertir en entier
+            y = int(position.get('y', 0))  # Convertir en entier
             
             # Obtenir l'opacité
             opacity = layer.get('opacity', 1.0)

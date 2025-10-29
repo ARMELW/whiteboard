@@ -1,0 +1,27 @@
+{
+  "slides": [
+    {
+      "index": 0,
+      "layers": [
+        {
+          "image_path": "doodle/multi/1.png",
+          "mode": "draw",
+          "z_index": 1,
+          "skip_rate": 8
+        },
+        {
+            "image_path": "doodle/multi/2.png",
+            "mode": "draw",
+            "z_index": 2,
+            "skip_rate": 8
+        },
+        {
+            "image_path": "doodle/multi/3.png",
+            "mode": "draw",
+            "z_index": 3,
+            "skip_rate": 8
+        }
+      ]
+    }
+  ]
+}

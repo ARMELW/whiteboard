@@ -1,0 +1,273 @@
+{
+    "slides": [
+        {
+            "index": 0,
+            "duration": 2,
+            "skip_rate": 10,
+            "layers": [
+                {
+                    "type": "image",
+                    "mode": "draw",
+                    "image_path": "http://localhost:9000/assets/5a440a3c-a3e8-4a95-a86f-dc2c2f4d27a4.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=admin%2F20251028%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251028T102049Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=44256ee475934e6c8db9fe85525c78fd7a98e7dc2540bff719a3008270448209",
+                    "position": {
+                        "x": 583.1083316395927,
+                        "y": 335.9935994869213
+                    }
+                },
+                {
+                    "type": "text",
+                    "mode": "draw",
+                    "text_config": {
+                        "text": "je suis ton pere mec",
+                        "font": "Bebas Neue",
+                        "size": 45,
+                        "style": "normal",
+                        "color": [
+                            242,
+                            64,
+                            64
+                        ],
+                        "align": "right",
+                        "position": {
+                            "x": 1049,
+                            "y": 518
+                        }
+                    }
+                },
+                {
+                    "type": "text",
+                    "mode": "draw",
+                    "text_config": {
+                        "text": "je suis ton pere mec",
+                        "font": "Bebas Neue",
+                        "size": 45,
+                        "style": "normal",
+                        "color": [
+                            242,
+                            64,
+                            64
+                        ],
+                        "align": "right",
+                        "position": {
+                            "x": 1027,
+                            "y": 671
+                        }
+                    }
+                },
+                {
+                    "type": "image",
+                    "mode": "draw",
+                    "image_path": "http://localhost:9000/assets/1afc26b2-85ed-48f1-9f6c-625d1941368e.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=admin%2F20251028%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251028T145657Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=fbfdcab59804c9db432e0dab1435dd3b282b4ee14923e15cfc389c71b9702960",
+                    "position": {
+                        "x": 1145.5098384654589,
+                        "y": 332.7825610703676
+                    }
+                },
+                {
+                    "type": "text",
+                    "mode": "draw",
+                    "text_config": {
+                        "text": "Tay be",
+                        "font": "Montserrat",
+                        "size": 41,
+                        "style": "bold",
+                        "color": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "align": "center",
+                        "position": {
+                            "x": 1151,
+                            "y": 396
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "index": 1,
+            "duration": 2,
+            "skip_rate": 10,
+            "layers": [
+                {
+                    "type": "image",
+                    "mode": "static",
+                    "image_path": "http://localhost:9000/assets/5a440a3c-a3e8-4a95-a86f-dc2c2f4d27a4.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=admin%2F20251028%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251028T102049Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=44256ee475934e6c8db9fe85525c78fd7a98e7dc2540bff719a3008270448209",
+                    "position": {
+                        "x": 583.1083316395927,
+                        "y": 335.9935994869213
+                    }
+                },
+                {
+                    "type": "text",
+                    "mode": "draw",
+                    "text_config": {
+                        "text": "je suis ton pere mec",
+                        "font": "Bebas Neue",
+                        "size": 45,
+                        "style": "normal",
+                        "color": [
+                            242,
+                            64,
+                            64
+                        ],
+                        "align": "right",
+                        "position": {
+                            "x": 1049,
+                            "y": 518
+                        }
+                    }
+                },
+                {
+                    "type": "text",
+                    "mode": "draw",
+                    "text_config": {
+                        "text": "je suis ton pere mec",
+                        "font": "Bebas Neue",
+                        "size": 45,
+                        "style": "normal",
+                        "color": [
+                            242,
+                            64,
+                            64
+                        ],
+                        "align": "right",
+                        "position": {
+                            "x": 1027,
+                            "y": 671
+                        }
+                    }
+                },
+                {
+                    "type": "image",
+                    "mode": "draw",
+                    "image_path": "http://localhost:9000/assets/1afc26b2-85ed-48f1-9f6c-625d1941368e.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=admin%2F20251028%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251028T145657Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=fbfdcab59804c9db432e0dab1435dd3b282b4ee14923e15cfc389c71b9702960",
+                    "position": {
+                        "x": 1145.5098384654589,
+                        "y": 332.7825610703676
+                    }
+                },
+                {
+                    "type": "text",
+                    "mode": "draw",
+                    "text_config": {
+                        "text": "Tay be",
+                        "font": "Montserrat",
+                        "size": 41,
+                        "style": "bold",
+                        "color": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "align": "center",
+                        "position": {
+                            "x": 1151,
+                            "y": 396
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "index": 2,
+            "duration": 2,
+            "skip_rate": 10,
+            "layers": [
+                {
+                    "type": "image",
+                    "mode": "static",
+                    "image_path": "http://localhost:9000/assets/5a440a3c-a3e8-4a95-a86f-dc2c2f4d27a4.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=admin%2F20251028%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251028T102049Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=44256ee475934e6c8db9fe85525c78fd7a98e7dc2540bff719a3008270448209",
+                    "position": {
+                        "x": 583.1083316395927,
+                        "y": 335.9935994869213
+                    }
+                },
+                {
+                    "type": "text",
+                    "mode": "draw",
+                    "text_config": {
+                        "text": "je suis ton pere mec",
+                        "font": "Bebas Neue",
+                        "size": 45,
+                        "style": "normal",
+                        "color": [
+                            242,
+                            64,
+                            64
+                        ],
+                        "align": "right",
+                        "position": {
+                            "x": 1049,
+                            "y": 518
+                        }
+                    }
+                },
+                {
+                    "type": "text",
+                    "mode": "draw",
+                    "text_config": {
+                        "text": "je suis ton pere mec",
+                        "font": "Bebas Neue",
+                        "size": 45,
+                        "style": "normal",
+                        "color": [
+                            242,
+                            64,
+                            64
+                        ],
+                        "align": "right",
+                        "position": {
+                            "x": 1027,
+                            "y": 671
+                        }
+                    }
+                },
+                {
+                    "type": "image",
+                    "mode": "draw",
+                    "image_path": "http://localhost:9000/assets/1afc26b2-85ed-48f1-9f6c-625d1941368e.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=admin%2F20251028%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251028T145657Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=fbfdcab59804c9db432e0dab1435dd3b282b4ee14923e15cfc389c71b9702960",
+                    "position": {
+                        "x": 1145.5098384654589,
+                        "y": 332.7825610703676
+                    }
+                },
+                {
+                    "type": "text",
+                    "mode": "draw",
+                    "text_config": {
+                        "text": "Tay be",
+                        "font": "Montserrat",
+                        "size": 41,
+                        "style": "bold",
+                        "color": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "align": "center",
+                        "position": {
+                            "x": 1151,
+                            "y": 396
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "transitions": [
+        {
+            "after_slide": 0,
+            "type": "fade",
+            "duration": 0.5,
+            "pause_before": 0.5
+        },
+        {
+            "after_slide": 1,
+            "type": "fade",
+            "duration": 0.5,
+            "pause_before": 0.5
+        }
+    ]
+}
