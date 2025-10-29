@@ -173,8 +173,15 @@ def main():
     
     # Save to file
     output_file = "demo_scene_cameras_config.json"
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(scene, f, indent=2, ensure_ascii=False)
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(scene, f, indent=2, ensure_ascii=False)
+    except IOError as e:
+        print(f"❌ Error: Could not write configuration file: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error: Unexpected error while saving configuration: {e}")
+        sys.exit(1)
     
     print("="*70)
     print("🎬 Scene Cameras Demo Configuration Generated")
