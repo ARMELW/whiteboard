@@ -352,7 +352,17 @@ def render_text_to_image(text_config, target_width, target_height):
         
         # Determine x position based on alignment
         if position and 'x' in position:
-            x = position['x']
+            # Position is specified - interpret based on alignment
+            # This matches frontend behavior where position is the anchor point
+            if align == 'center':
+                # For center align, x is the center of the text
+                x = position['x'] - line_width // 2
+            elif align == 'right':
+                # For right align, x is the right edge of the text
+                x = position['x'] - line_width
+            else:  # left
+                # For left align, x is the left edge of the text
+                x = position['x']
         elif align == 'center':
             x = (target_width - line_width) // 2
         elif align == 'right':
@@ -780,7 +790,17 @@ def convert_glyph_paths_to_points(char_paths, font_size, text_config, target_wid
         line_width_estimate = len(line) * font_size * 0.6  # Rough estimate
         
         if position and 'x' in position:
-            line_x = position['x']
+            # Position is specified - interpret based on alignment
+            # This matches frontend behavior where position is the anchor point
+            if align == 'center':
+                # For center align, x is the center of the text
+                line_x = position['x'] - line_width_estimate // 2
+            elif align == 'right':
+                # For right align, x is the right edge of the text
+                line_x = position['x'] - line_width_estimate
+            else:  # left
+                # For left align, x is the left edge of the text
+                line_x = position['x']
         elif align == 'center':
             line_x = (target_width - line_width_estimate) // 2
         elif align == 'right':
