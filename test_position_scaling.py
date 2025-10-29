@@ -7,7 +7,7 @@ import json
 def test_position_scaling():
     """Test that positions are correctly scaled"""
     
-    # Simulate the original positions from test-layer.json
+    # Load positions from test-layer.json if available, otherwise use sample data
     original_positions = [
         {"x": 583.1, "y": 335.9},  # Image 1
         {"x": 1049, "y": 518},      # Text 1
@@ -15,6 +15,25 @@ def test_position_scaling():
         {"x": 1145.5, "y": 332.7},  # Image 2
         {"x": 1151, "y": 396}       # Text 3
     ]
+    
+    # Try to load from actual test-layer.json
+    try:
+        import os
+        test_layer_path = os.path.join(os.path.dirname(__file__), 'examples', 'test-layer.json')
+        if os.path.exists(test_layer_path):
+            with open(test_layer_path, 'r') as f:
+                config = json.load(f)
+                if 'slides' in config and config['slides']:
+                    layers = config['slides'][0].get('layers', [])
+                    original_positions = []
+                    for layer in layers:
+                        if 'position' in layer:
+                            original_positions.append(layer['position'])
+                        elif 'text_config' in layer and 'position' in layer['text_config']:
+                            original_positions.append(layer['text_config']['position'])
+                    print(f"Loaded {len(original_positions)} positions from test-layer.json")
+    except Exception as e:
+        print(f"Using sample positions (couldn't load from file: {e})")
     
     # Test case 1: No scaling (canvas dimensions match video dimensions)
     print("Test 1: No Scaling (1920x1080 → 1920x1080)")
@@ -41,9 +60,14 @@ def test_position_scaling():
     scale_y = video_height / canvas_height
     print(f"Scale factors: x={scale_x:.3f}, y={scale_y:.3f}")
     
+    # Calculate the inverse scale to convert original positions to smaller canvas
+    inverse_scale_x = canvas_width / 1920.0
+    inverse_scale_y = canvas_height / 1080.0
+    
     # Adjust original positions as if they were from a 1200x800 canvas
     scaled_original = [
-        {"x": p['x'] / 1.6, "y": p['y'] / 1.35} for p in original_positions
+        {"x": p['x'] * inverse_scale_x, "y": p['y'] * inverse_scale_y} 
+        for p in original_positions
     ]
     
     for i, pos in enumerate(scaled_original):
