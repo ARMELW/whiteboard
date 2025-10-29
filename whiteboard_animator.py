@@ -4731,9 +4731,10 @@ def process_multiple_images(image_paths, split_len, frame_rate, object_skip_rate
                 'canvas_width': per_slide_config.get('canvas_width', 1920),
                 'canvas_height': per_slide_config.get('canvas_height', 1080)
             }
-            # Map sceneCameras to cameras at root level
+            # Map sceneCameras to cameras at root level (only if cameras doesn't exist or is empty)
             if 'sceneCameras' in per_slide_config['slides'][0]:
-                per_slide_config['slides'][0]['cameras'] = per_slide_config['slides'][0].get('sceneCameras')
+                if 'cameras' not in per_slide_config['slides'][0] or not per_slide_config['slides'][0]['cameras']:
+                    per_slide_config['slides'][0]['cameras'] = per_slide_config['slides'][0]['sceneCameras']
             per_slide_config['slides'][0]['index'] = 0
             num_slides = 1
             has_slides_config = True
@@ -4820,8 +4821,10 @@ def process_multiple_images(image_paths, split_len, frame_rate, object_skip_rate
                     break
             
             # Map sceneCameras to cameras if present (for compatibility)
-            if 'sceneCameras' in slide_config and 'cameras' not in slide_config:
-                slide_config['cameras'] = slide_config['sceneCameras']
+            # Only map if cameras doesn't exist or is empty
+            if 'sceneCameras' in slide_config:
+                if 'cameras' not in slide_config or not slide_config['cameras']:
+                    slide_config['cameras'] = slide_config['sceneCameras']
             
             layers = slide_config.get('layers', None)
             image_path = slide_config.get('image_path', None)
