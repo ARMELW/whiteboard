@@ -4720,9 +4720,24 @@ def process_multiple_images(image_paths, split_len, frame_rate, object_skip_rate
     # Check if we have slides with layers configuration
     has_slides_config = False
     num_slides = 0
-    if per_slide_config and 'slides' in per_slide_config:
-        num_slides = len(per_slide_config['slides'])
-        has_slides_config = True
+    if per_slide_config:
+        if 'slides' in per_slide_config:
+            num_slides = len(per_slide_config['slides'])
+            has_slides_config = True
+        elif 'layers' in per_slide_config:
+            # Single scene config without 'slides' wrapper - wrap it
+            per_slide_config = {
+                'slides': [per_slide_config],
+                'canvas_width': per_slide_config.get('canvas_width', 1920),
+                'canvas_height': per_slide_config.get('canvas_height', 1080)
+            }
+            # Map sceneCameras to cameras at root level (only if cameras doesn't exist or is empty)
+            if 'sceneCameras' in per_slide_config['slides'][0]:
+                if 'cameras' not in per_slide_config['slides'][0] or not per_slide_config['slides'][0]['cameras']:
+                    per_slide_config['slides'][0]['cameras'] = per_slide_config['slides'][0]['sceneCameras']
+            per_slide_config['slides'][0]['index'] = 0
+            num_slides = 1
+            has_slides_config = True
     
     # If no image paths and no slides config, error
     if not image_paths and not has_slides_config:
@@ -4804,6 +4819,12 @@ def process_multiple_images(image_paths, split_len, frame_rate, object_skip_rate
                 if slide_cfg.get('index') == idx - 1:
                     slide_config = slide_cfg
                     break
+            
+            # Map sceneCameras to cameras if present (for compatibility)
+            # Only map if cameras doesn't exist or is empty
+            if 'sceneCameras' in slide_config:
+                if 'cameras' not in slide_config or not slide_config['cameras']:
+                    slide_config['cameras'] = slide_config['sceneCameras']
             
             layers = slide_config.get('layers', None)
             image_path = slide_config.get('image_path', None)
@@ -5644,6 +5665,9 @@ def main():
                     if 'layers' in slide_cfg:
                         has_layers_config = True
                         break
+            elif 'layers' in per_slide_config:
+                # Single scene config without 'slides' wrapper
+                has_layers_config = True
         except Exception as e:
             print(f"❌ Erreur lors de la lecture du fichier de configuration: {e}")
             return
