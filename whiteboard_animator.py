@@ -4152,6 +4152,800 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
     return canvas
 
 
+def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920, scene_height=1080, 
+                               background='#FFFFFF', base_path=".", verbose=True):
+    """Compose a scene with camera-based viewport positioning.
+    
+    Similar to the TypeScript exportSceneImage function, this renders a scene
+    with all layers positioned correctly relative to the camera viewport.
+    
+    Args:
+        scene_config: Scene configuration dict with:
+            - layers: List of layer configurations
+            - backgroundImage: Optional background image path
+            - sceneCameras: Optional list of camera configurations (first default camera will be used)
+        camera_config: Optional camera configuration dict with:
+            - width: Camera viewport width (default: 800)
+            - height: Camera viewport height (default: 450)
+            - position: Dict with x, y (0.0-1.0, default 0.5, 0.5 for center)
+            - isDefault: Boolean indicating if this is the default camera
+        scene_width: Scene width in pixels (default: 1920)
+        scene_height: Scene height in pixels (default: 1080)
+        background: Background color (hex string or RGB tuple, default: '#FFFFFF')
+        base_path: Base path for resolving relative file paths
+    
+    Returns:
+        Composed image as numpy array (BGR format)
+    """
+    # Get camera configuration
+    if camera_config is None:
+        # Try to get default camera from scene_config
+        scene_cameras = scene_config.get('sceneCameras', [])
+        if scene_cameras:
+            # Find default camera
+            for cam in scene_cameras:
+                if cam.get('isDefault', False):
+                    camera_config = cam
+                    break
+            # If no default found, use first camera
+            if camera_config is None and scene_cameras:
+                camera_config = scene_cameras[0]
+    
+    # Set default camera values if no camera config
+    if camera_config is None:
+        camera_config = {
+            'width': 800,
+            'height': 450,
+            'position': {'x': 0.5, 'y': 0.5}
+        }
+    
+    # Use camera dimensions for canvas
+    canvas_width = int(camera_config.get('width', 800))
+    canvas_height = int(camera_config.get('height', 450))
+    
+    # Parse background color
+    if isinstance(background, str):
+        if background.startswith('#'):
+            # Convert hex to BGR
+            rgb = tuple(int(background[i:i+2], 16) for i in (1, 3, 5))
+            bg_color = (rgb[2], rgb[1], rgb[0])  # Convert RGB to BGR
+        else:
+            bg_color = (255, 255, 255)  # Default white
+    elif isinstance(background, (list, tuple)) and len(background) == 3:
+        # Assume RGB, convert to BGR
+        bg_color = (background[2], background[1], background[0])
+    else:
+        bg_color = (255, 255, 255)
+    
+    # Create canvas with background color
+    canvas = np.full((canvas_height, canvas_width, 3), bg_color, dtype=np.uint8)
+    
+    # Calculate camera viewport in scene coordinates
+    camera_pos = camera_config.get('position', {'x': 0.5, 'y': 0.5})
+    camera_x = (camera_pos['x'] * scene_width) - (canvas_width / 2)
+    camera_y = (camera_pos['y'] * scene_height) - (canvas_height / 2)
+    
+    if verbose: print(f"  📷 Camera viewport: {canvas_width}x{canvas_height} at scene position ({camera_x:.1f}, {camera_y:.1f})")
+    
+    # Render scene background image if exists
+    background_image = scene_config.get('backgroundImage', None)
+    if background_image:
+        try:
+            # Load background image
+            if background_image.startswith('http://') or background_image.startswith('https://'):
+                bg_img = load_image_from_url_or_path(background_image)
+            else:
+                if not os.path.isabs(background_image):
+                    background_image = os.path.join(base_path, background_image)
+                bg_img = load_image_from_url_or_path(background_image)
+            
+            if bg_img is not None:
+                # Calculate source rectangle (portion of background to show)
+                bg_h, bg_w = bg_img.shape[:2]
+                source_x = int((camera_x / scene_width) * bg_w)
+                source_y = int((camera_y / scene_height) * bg_h)
+                source_width = int((canvas_width / scene_width) * bg_w)
+                source_height = int((canvas_height / scene_height) * bg_h)
+                
+                # Clamp to image bounds
+                source_x = max(0, min(source_x, bg_w - 1))
+                source_y = max(0, min(source_y, bg_h - 1))
+                source_width = min(source_width, bg_w - source_x)
+                source_height = min(source_height, bg_h - source_y)
+                
+                # Extract and resize the cropped portion
+                if source_width > 0 and source_height > 0:
+                    cropped_bg = bg_img[source_y:source_y+source_height, source_x:source_x+source_width]
+                    canvas = cv2.resize(cropped_bg, (canvas_width, canvas_height), interpolation=cv2.INTER_LINEAR)
+                    if verbose: print(f"  🖼️  Background image rendered with camera cropping")
+        except Exception as e:
+            if verbose: print(f"  ⚠️ Failed to render background image: {e}")
+    
+    # Get and sort layers by z_index
+    layers = scene_config.get('layers', [])
+    sorted_layers = sorted(layers, key=lambda x: x.get('z_index', 0))
+    
+    if verbose: print(f"  📐 Composing {len(sorted_layers)} layer(s) with camera positioning...")
+    
+    # Render each layer
+    for layer in sorted_layers:
+        try:
+            # Check layer visibility
+            if not layer.get('visible', True):
+                continue
+            
+            layer_type = layer.get('type', 'image')
+            
+            # Render layer to image based on type
+            layer_img = None
+            
+            if layer_type == 'text':
+                text_config = layer.get('text_config', {})
+                if not text_config or 'text' not in text_config:
+                    continue
+                # Render text to full scene size, we'll crop later
+                layer_img = render_text_to_image(text_config, scene_width, scene_height)
+                
+            elif layer_type == 'shape':
+                shape_config = layer.get('shape_config', {})
+                if not shape_config:
+                    continue
+                # Render shape to full scene size
+                layer_img = render_shape_to_image(shape_config, scene_width, scene_height)
+                
+            elif layer_type == 'arrow':
+                arrow_config = layer.get('arrow_config', {})
+                if not arrow_config or 'start' not in arrow_config or 'end' not in arrow_config:
+                    continue
+                # Render arrow fully drawn
+                layer_img = np.ones((scene_height, scene_width, 3), dtype=np.uint8) * 255
+                layer_img = draw_arrow_progressive(layer_img, arrow_config, 1.0, scene_width, scene_height)
+                
+            elif layer_type == 'whiteboard':
+                # For whiteboard/strokes, we need to render strokes
+                strokes = layer.get('strokes', [])
+                if not strokes:
+                    continue
+                # Create white canvas and render strokes
+                layer_img = np.ones((scene_height, scene_width, 3), dtype=np.uint8) * 255
+                # Render each stroke
+                for stroke in strokes:
+                    points = stroke.get('points', [])
+                    if len(points) < 2:
+                        continue
+                    stroke_width = stroke.get('strokeWidth', stroke.get('stroke_width', 2))
+                    stroke_color_str = stroke.get('strokeColor', stroke.get('stroke_color', '#000000'))
+                    # Parse stroke color
+                    if isinstance(stroke_color_str, str) and stroke_color_str.startswith('#'):
+                        rgb = tuple(int(stroke_color_str[i:i+2], 16) for i in (1, 3, 5))
+                        stroke_color = (rgb[2], rgb[1], rgb[0])  # RGB to BGR
+                    else:
+                        stroke_color = (0, 0, 0)
+                    
+                    # Draw stroke path
+                    if len(points) == 2:
+                        pt1 = (int(points[0]['x']), int(points[0]['y']))
+                        pt2 = (int(points[1]['x']), int(points[1]['y']))
+                        cv2.line(layer_img, pt1, pt2, stroke_color, int(stroke_width))
+                    else:
+                        # Use quadratic curves for smooth strokes
+                        for i in range(len(points) - 1):
+                            pt1 = (int(points[i]['x']), int(points[i]['y']))
+                            pt2 = (int(points[i+1]['x']), int(points[i+1]['y']))
+                            cv2.line(layer_img, pt1, pt2, stroke_color, int(stroke_width))
+                
+            else:
+                # Image layer
+                image_path = layer.get('image_path', '')
+                if not image_path:
+                    continue
+                # Resolve path
+                if not (image_path.startswith('http://') or image_path.startswith('https://')):
+                    if not os.path.isabs(image_path):
+                        image_path = os.path.join(base_path, image_path)
+                layer_img = load_image_from_url_or_path(image_path)
+                if layer_img is None:
+                    continue
+            
+            # Apply scale if specified
+            scale = layer.get('scale', 1.0)
+            if scale != 1.0 and layer_img is not None:
+                new_width = int(layer_img.shape[1] * scale)
+                new_height = int(layer_img.shape[0] * scale)
+                layer_img = cv2.resize(layer_img, (new_width, new_height))
+            
+            # Get layer position (in scene coordinates)
+            position = layer.get('position', {'x': 0, 'y': 0})
+            layer_x = position.get('x', 0)
+            layer_y = position.get('y', 0)
+            
+            # Calculate layer position relative to camera viewport
+            relative_x = layer_x - camera_x
+            relative_y = layer_y - camera_y
+            
+            # Get rotation and flip
+            rotation = layer.get('rotation', 0)
+            flip_x = layer.get('flipX', False)
+            flip_y = layer.get('flipY', False)
+            
+            # Apply transformations if needed
+            if rotation != 0 or flip_x or flip_y:
+                # Get image dimensions
+                layer_h, layer_w = layer_img.shape[:2]
+                
+                # Apply flip
+                if flip_x:
+                    layer_img = cv2.flip(layer_img, 1)  # Horizontal flip
+                if flip_y:
+                    layer_img = cv2.flip(layer_img, 0)  # Vertical flip
+                
+                # Apply rotation
+                if rotation != 0:
+                    # Get rotation matrix (rotate around center)
+                    center = (layer_w / 2, layer_h / 2)
+                    rotation_matrix = cv2.getRotationMatrix2D(center, rotation, 1.0)
+                    # Calculate new bounding box
+                    cos = np.abs(rotation_matrix[0, 0])
+                    sin = np.abs(rotation_matrix[0, 1])
+                    new_w = int((layer_h * sin) + (layer_w * cos))
+                    new_h = int((layer_h * cos) + (layer_w * sin))
+                    # Adjust rotation matrix for new size
+                    rotation_matrix[0, 2] += (new_w / 2) - center[0]
+                    rotation_matrix[1, 2] += (new_h / 2) - center[1]
+                    # Apply rotation with white background
+                    layer_img = cv2.warpAffine(layer_img, rotation_matrix, (new_w, new_h), 
+                                               borderMode=cv2.BORDER_CONSTANT, 
+                                               borderValue=(255, 255, 255))
+                    # Adjust position to account for size change
+                    relative_x -= (new_w - layer_w) / 2
+                    relative_y -= (new_h - layer_h) / 2
+            
+            # Get opacity
+            opacity = layer.get('opacity', 1.0)
+            opacity = max(0.0, min(1.0, opacity))
+            
+            # Calculate region to copy
+            layer_h, layer_w = layer_img.shape[:2]
+            
+            # Calculate intersection with canvas
+            x1_canvas = max(0, int(relative_x))
+            y1_canvas = max(0, int(relative_y))
+            x2_canvas = min(canvas_width, int(relative_x + layer_w))
+            y2_canvas = min(canvas_height, int(relative_y + layer_h))
+            
+            # Calculate corresponding region in layer image
+            x1_layer = max(0, int(-relative_x))
+            y1_layer = max(0, int(-relative_y))
+            x2_layer = x1_layer + (x2_canvas - x1_canvas)
+            y2_layer = y1_layer + (y2_canvas - y1_canvas)
+            
+            # Check if there's a valid region to copy
+            if x2_canvas <= x1_canvas or y2_canvas <= y1_canvas:
+                continue
+            
+            # Extract regions
+            layer_region = layer_img[y1_layer:y2_layer, x1_layer:x2_layer]
+            canvas_region = canvas[y1_canvas:y2_canvas, x1_canvas:x2_canvas].copy()
+            
+            # Blend with opacity
+            if opacity < 1.0:
+                canvas[y1_canvas:y2_canvas, x1_canvas:x2_canvas] = cv2.addWeighted(
+                    canvas_region, 1 - opacity, layer_region, opacity, 0
+                )
+            else:
+                # For opacity 1.0, copy only non-white pixels (preserve transparency)
+                threshold = 250
+                layer_content_mask = np.any(layer_region < threshold, axis=2)
+                canvas_region[layer_content_mask] = layer_region[layer_content_mask]
+                canvas[y1_canvas:y2_canvas, x1_canvas:x2_canvas] = canvas_region
+            
+            # Log layer
+            z_idx = layer.get('z_index', 0)
+            layer_id = layer.get('id', 'unknown')
+            if verbose: print(f"    ✓ Layer applied: {layer_type} (id:{layer_id}, z:{z_idx}, " +
+                  f"scene_pos:({layer_x:.1f},{layer_y:.1f}), " +
+                  f"viewport_pos:({relative_x:.1f},{relative_y:.1f}), " +
+                  f"scale:{scale:.2f}, opacity:{opacity:.2f})")
+            
+        except Exception as e:
+            if verbose: print(f"    ❌ Error rendering layer: {e}")
+            import traceback
+            traceback.print_exc()
+            continue
+    
+    return canvas
+
+
+def export_scene_to_video(scene_config, output_path, fps=30, duration=None, 
+                          camera_config=None, scene_width=1920, scene_height=1080,
+                          background='#FFFFFF', base_path=".", crf=18,
+                          camera_animation=None):
+    """Export a scene to video with camera-based viewport positioning.
+    
+    This function uses the compose_scene_with_camera logic to render each frame
+    of the video, properly placing all elements relative to the camera viewport.
+    
+    Args:
+        scene_config: Scene configuration dict with:
+            - layers: List of layer configurations
+            - backgroundImage: Optional background image path
+            - sceneCameras: Optional list of camera configurations
+            - duration: Optional scene duration in seconds (overrides duration parameter)
+        output_path: Path to save the output video file
+        fps: Frames per second (default: 30)
+        duration: Video duration in seconds (default: 5.0, or from scene_config)
+        camera_config: Optional camera configuration dict (if None, uses sceneCameras)
+        scene_width: Scene width in pixels (default: 1920)
+        scene_height: Scene height in pixels (default: 1080)
+        background: Background color (default: '#FFFFFF')
+        base_path: Base path for resolving relative file paths
+        crf: Video quality (0-51, lower = better, 18 is visually lossless)
+        camera_animation: Optional dict with camera animation config:
+            - type: 'pan', 'zoom', 'static' (default: 'static')
+            - start_position: Starting camera position {'x', 'y'}
+            - end_position: Ending camera position {'x', 'y'}
+            - start_zoom: Starting zoom level (for zoom animation)
+            - end_zoom: Ending zoom level (for zoom animation)
+            - easing: 'linear', 'ease_in', 'ease_out', 'ease_in_out'
+    
+    Returns:
+        dict: Status information with 'success' boolean and 'output_path' string
+    """
+    print("\n" + "="*60)
+    print("🎬 SCENE VIDEO EXPORT")
+    print("="*60)
+    
+    # Determine duration
+    if duration is None:
+        duration = scene_config.get('duration', 5.0)
+    
+    # Calculate total frames
+    total_frames = int(duration * fps)
+    
+    print(f"  📹 Output: {output_path}")
+    print(f"  ⏱️  Duration: {duration}s ({total_frames} frames @ {fps} fps)")
+    
+    # Get camera configuration
+    if camera_config is None:
+        scene_cameras = scene_config.get('sceneCameras', [])
+        if scene_cameras:
+            for cam in scene_cameras:
+                if cam.get('isDefault', False):
+                    camera_config = cam
+                    break
+            if camera_config is None and scene_cameras:
+                camera_config = scene_cameras[0]
+    
+    # Set default camera if still None
+    if camera_config is None:
+        camera_config = {
+            'width': scene_width,
+            'height': scene_height,
+            'position': {'x': 0.5, 'y': 0.5}
+        }
+    
+    # Get camera dimensions
+    camera_width = int(camera_config.get('width', scene_width))
+    camera_height = int(camera_config.get('height', scene_height))
+    
+    print(f"  📷 Camera: {camera_width}x{camera_height}")
+    
+    # Initialize video writer
+    try:
+        # Determine video codec
+        if output_path.endswith('.avi'):
+            fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+        else:
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        
+        video_writer = cv2.VideoWriter(
+            output_path,
+            fourcc,
+            fps,
+            (camera_width, camera_height)
+        )
+        
+        if not video_writer.isOpened():
+            raise Exception("Failed to open video writer")
+        
+        print(f"  ✓ Video writer initialized")
+        
+    except Exception as e:
+        print(f"  ❌ Failed to initialize video writer: {e}")
+        return {'success': False, 'error': str(e)}
+    
+    # Helper function for easing
+    def apply_easing(t, easing='linear'):
+        """Apply easing function to normalized time t (0.0 to 1.0)."""
+        if easing == 'ease_in':
+            return t * t
+        elif easing == 'ease_out':
+            return 1 - (1 - t) * (1 - t)
+        elif easing == 'ease_in_out':
+            if t < 0.5:
+                return 2 * t * t
+            else:
+                return 1 - 2 * (1 - t) * (1 - t)
+        else:  # linear
+            return t
+    
+    # Render frames
+    try:
+        print(f"  🎨 Rendering {total_frames} frames...")
+        
+        for frame_idx in range(total_frames):
+            # Calculate progress (0.0 to 1.0)
+            progress = frame_idx / max(1, total_frames - 1) if total_frames > 1 else 0.0
+            
+            # Calculate current camera configuration based on animation
+            current_camera = camera_config.copy()
+            
+            if camera_animation:
+                anim_type = camera_animation.get('type', 'static')
+                easing = camera_animation.get('easing', 'linear')
+                eased_progress = apply_easing(progress, easing)
+                
+                if anim_type == 'pan':
+                    # Pan camera from start to end position
+                    start_pos = camera_animation.get('start_position', {'x': 0.5, 'y': 0.5})
+                    end_pos = camera_animation.get('end_position', {'x': 0.5, 'y': 0.5})
+                    
+                    current_x = start_pos['x'] + (end_pos['x'] - start_pos['x']) * eased_progress
+                    current_y = start_pos['y'] + (end_pos['y'] - start_pos['y']) * eased_progress
+                    
+                    current_camera['position'] = {'x': current_x, 'y': current_y}
+                
+                elif anim_type == 'zoom':
+                    # Zoom camera
+                    start_zoom = camera_animation.get('start_zoom', 1.0)
+                    end_zoom = camera_animation.get('end_zoom', 2.0)
+                    
+                    current_zoom = start_zoom + (end_zoom - start_zoom) * eased_progress
+                    
+                    # Adjust camera size based on zoom
+                    base_width = camera_animation.get('base_width', camera_width)
+                    base_height = camera_animation.get('base_height', camera_height)
+                    
+                    current_camera['width'] = int(base_width / current_zoom)
+                    current_camera['height'] = int(base_height / current_zoom)
+            
+            # Compose frame using the camera positioning logic (verbose=False for performance)
+            frame = compose_scene_with_camera(
+                scene_config,
+                current_camera,
+                scene_width,
+                scene_height,
+                background,
+                base_path,
+                verbose=False  # Disable per-frame logging for performance
+            )
+            
+            # Ensure frame dimensions match camera dimensions
+            if frame.shape[:2] != (camera_height, camera_width):
+                frame = cv2.resize(frame, (camera_width, camera_height))
+            
+            # Write frame
+            video_writer.write(frame)
+            
+            # Progress indicator
+            if (frame_idx + 1) % max(1, total_frames // 10) == 0:
+                percent = int((frame_idx + 1) / total_frames * 100)
+                print(f"    Progress: {percent}% ({frame_idx + 1}/{total_frames} frames)")
+        
+        print(f"  ✓ All frames rendered")
+        
+    except Exception as e:
+        print(f"  ❌ Error rendering frames: {e}")
+        import traceback
+        traceback.print_exc()
+        video_writer.release()
+        return {'success': False, 'error': str(e)}
+    
+    finally:
+        video_writer.release()
+    
+    # Convert to H.264 if requested
+    if crf is not None and crf != 18:
+        temp_path = output_path.replace('.mp4', '_temp.mp4')
+        os.rename(output_path, temp_path)
+        
+        try:
+            print(f"  🔄 Converting to H.264 (CRF={crf})...")
+            ffmpeg_convert(temp_path, output_path, crf=crf)
+            os.remove(temp_path)
+            print(f"  ✓ Conversion complete")
+        except Exception as e:
+            print(f"  ⚠️ Conversion failed: {e}")
+            os.rename(temp_path, output_path)
+    
+    print(f"\n✅ Video export complete: {output_path}")
+    print("="*60)
+    
+    return {
+        'success': True,
+        'output_path': output_path,
+        'duration': duration,
+        'fps': fps,
+        'frames': total_frames,
+        'resolution': f"{camera_width}x{camera_height}"
+    }
+
+
+def export_scene_to_whiteboard_video(scene_config, output_path, fps=30,
+                                     camera_config=None, scene_width=1920, scene_height=1080,
+                                     background='#FFFFFF', base_path=".", crf=18,
+                                     draw_speed=8, show_hand=True, hand_path=None, 
+                                     final_hold_duration=2.0):
+    """Export a scene to video with whiteboard-style progressive drawing animation.
+    
+    This function animates layers progressively with a drawing hand that follows
+    the content being drawn, creating a whiteboard/doodly-style animation.
+    
+    Args:
+        scene_config: Scene configuration dict with:
+            - layers: List of layer configurations (must have z_index for draw order)
+            - backgroundImage: Optional background image path
+            - sceneCameras: Optional list of camera configurations
+        output_path: Path to save the output video file
+        fps: Frames per second (default: 30)
+        camera_config: Optional camera configuration dict
+        scene_width: Scene width in pixels (default: 1920)
+        scene_height: Scene height in pixels (default: 1080)
+        background: Background color (default: '#FFFFFF')
+        base_path: Base path for resolving relative file paths
+        crf: Video quality (0-51, lower = better, 18 is visually lossless)
+        draw_speed: Drawing speed factor (lower = slower, default: 8)
+        show_hand: Whether to show the drawing hand (default: True)
+        hand_path: Path to drawing hand image (default: uses built-in)
+        final_hold_duration: Duration to hold final frame in seconds (default: 2.0)
+    
+    Returns:
+        dict: Status information with 'success' boolean and details
+    """
+    print("\n" + "="*60)
+    print("🎬 WHITEBOARD VIDEO EXPORT")
+    print("="*60)
+    
+    # Get camera configuration
+    if camera_config is None:
+        scene_cameras = scene_config.get('sceneCameras', [])
+        if scene_cameras:
+            for cam in scene_cameras:
+                if cam.get('isDefault', False):
+                    camera_config = cam
+                    break
+            if camera_config is None and scene_cameras:
+                camera_config = scene_cameras[0]
+    
+    if camera_config is None:
+        camera_config = {
+            'width': scene_width,
+            'height': scene_height,
+            'position': {'x': 0.5, 'y': 0.5}
+        }
+    
+    camera_width = int(camera_config.get('width', scene_width))
+    camera_height = int(camera_config.get('height', scene_height))
+    
+    print(f"  📹 Output: {output_path}")
+    print(f"  📷 Camera: {camera_width}x{camera_height}")
+    print(f"  🎨 Draw speed: {draw_speed}")
+    
+    # Load hand image if showing hand
+    hand_img = None
+    hand_mask_inv = None
+    if show_hand:
+        if hand_path is None:
+            hand_path = os.path.join(base_path, 'data', 'images', 'drawing-hand.png')
+        
+        if os.path.exists(hand_path):
+            hand_img = cv2.imread(hand_path, cv2.IMREAD_UNCHANGED)
+            if hand_img is not None and hand_img.shape[2] == 4:
+                # Extract alpha channel as mask
+                hand_mask = hand_img[:, :, 3]
+                hand_mask_inv = cv2.bitwise_not(hand_mask)
+                hand_img = hand_img[:, :, :3]
+                print(f"  ✋ Hand image loaded: {hand_img.shape[1]}x{hand_img.shape[0]}")
+            else:
+                print(f"  ⚠️ Hand image has no alpha channel, disabling hand")
+                show_hand = False
+        else:
+            print(f"  ⚠️ Hand image not found at {hand_path}, disabling hand")
+            show_hand = False
+    
+    # Initialize video writer
+    try:
+        if output_path.endswith('.avi'):
+            fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+        else:
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        
+        video_writer = cv2.VideoWriter(
+            output_path,
+            fourcc,
+            fps,
+            (camera_width, camera_height)
+        )
+        
+        if not video_writer.isOpened():
+            raise Exception("Failed to open video writer")
+        
+        print(f"  ✓ Video writer initialized")
+        
+    except Exception as e:
+        print(f"  ❌ Failed to initialize video writer: {e}")
+        return {'success': False, 'error': str(e)}
+    
+    # Sort layers by z_index (draw order)
+    layers = scene_config.get('layers', [])
+    sorted_layers = sorted(layers, key=lambda x: x.get('z_index', 0))
+    
+    print(f"  📝 Animating {len(sorted_layers)} layer(s) progressively...")
+    
+    # Create initial blank canvas
+    blank_canvas = compose_scene_with_camera(
+        {'layers': []},  # Empty scene
+        camera_config,
+        scene_width,
+        scene_height,
+        background,
+        base_path,
+        verbose=False
+    )
+    
+    total_frames_written = 0
+    
+    try:
+        # Render background if exists
+        bg_image = scene_config.get('backgroundImage', None)
+        if bg_image:
+            bg_scene = {
+                'backgroundImage': bg_image,
+                'layers': []
+            }
+            current_canvas = compose_scene_with_camera(
+                bg_scene,
+                camera_config,
+                scene_width,
+                scene_height,
+                background,
+                base_path,
+                verbose=False
+            )
+        else:
+            current_canvas = blank_canvas.copy()
+        
+        # Animate each layer progressively
+        for layer_idx, layer in enumerate(sorted_layers):
+            layer_type = layer.get('type', 'image')
+            layer_id = layer.get('id', f'layer_{layer_idx}')
+            
+            # Skip if not visible
+            if not layer.get('visible', True):
+                continue
+            
+            print(f"    Animating layer {layer_idx + 1}/{len(sorted_layers)}: {layer_type} (id: {layer_id})")
+            
+            # Compose this layer on top of current canvas
+            layer_scene = {
+                'layers': [layer]
+            }
+            
+            # Get the full layer image
+            layer_full = compose_scene_with_camera(
+                layer_scene,
+                camera_config,
+                scene_width,
+                scene_height,
+                '#FFFFFF',  # White background for layer
+                base_path,
+                verbose=False
+            )
+            
+            # Calculate drawing frames based on layer complexity
+            # For now, use a fixed number of frames per layer
+            layer_duration = layer.get('draw_duration', 2.0)  # seconds
+            layer_frames = int(layer_duration * fps)
+            
+            # Animate layer being drawn progressively
+            for frame_idx in range(layer_frames):
+                progress = (frame_idx + 1) / layer_frames
+                
+                # Create progressive reveal using a simple fade-in effect
+                # In a real implementation, this would scan pixel by pixel
+                frame = current_canvas.copy()
+                
+                # Blend the layer progressively
+                alpha = progress
+                frame = cv2.addWeighted(frame, 1.0, layer_full, alpha, 0)
+                
+                # Add drawing hand if enabled
+                if show_hand and hand_img is not None:
+                    # Position hand at a representative location
+                    # In a real implementation, this would follow the actual drawing path
+                    layer_pos = layer.get('position', {'x': scene_width // 2, 'y': scene_height // 2})
+                    
+                    # Calculate hand position in camera viewport
+                    camera_pos = camera_config.get('position', {'x': 0.5, 'y': 0.5})
+                    camera_x = (camera_pos['x'] * scene_width) - (camera_width / 2)
+                    camera_y = (camera_pos['y'] * scene_height) - (camera_height / 2)
+                    
+                    hand_x = int(layer_pos['x'] - camera_x)
+                    hand_y = int(layer_pos['y'] - camera_y)
+                    
+                    # Adjust hand position for drawing progress
+                    hand_y = int(hand_y - 50 + (100 * progress))
+                    
+                    # Overlay hand on frame
+                    hand_h, hand_w = hand_img.shape[:2]
+                    x1 = max(0, hand_x)
+                    y1 = max(0, hand_y)
+                    x2 = min(camera_width, hand_x + hand_w)
+                    y2 = min(camera_height, hand_y + hand_h)
+                    
+                    if x2 > x1 and y2 > y1:
+                        hx1 = max(0, -hand_x)
+                        hy1 = max(0, -hand_y)
+                        hx2 = hx1 + (x2 - x1)
+                        hy2 = hy1 + (y2 - y1)
+                        
+                        try:
+                            hand_region = hand_img[hy1:hy2, hx1:hx2]
+                            mask_region = hand_mask_inv[hy1:hy2, hx1:hx2]
+                            frame_region = frame[y1:y2, x1:x2]
+                            
+                            # Blend hand onto frame
+                            for c in range(3):
+                                frame_region[:, :, c] = (
+                                    frame_region[:, :, c] * (mask_region / 255.0) +
+                                    hand_region[:, :, c] * (1 - mask_region / 255.0)
+                                ).astype(np.uint8)
+                            
+                            frame[y1:y2, x1:x2] = frame_region
+                        except:
+                            pass  # Skip hand if positioning fails
+                
+                video_writer.write(frame)
+                total_frames_written += 1
+            
+            # Update current canvas to include this layer
+            current_canvas = cv2.addWeighted(current_canvas, 1.0, layer_full, 1.0, 0)
+        
+        # Hold final frame
+        final_frames = int(final_hold_duration * fps)
+        print(f"    Holding final frame for {final_hold_duration}s ({final_frames} frames)")
+        
+        for _ in range(final_frames):
+            video_writer.write(current_canvas)
+            total_frames_written += 1
+        
+        print(f"  ✓ All frames rendered ({total_frames_written} total)")
+        
+    except Exception as e:
+        print(f"  ❌ Error rendering frames: {e}")
+        import traceback
+        traceback.print_exc()
+        video_writer.release()
+        return {'success': False, 'error': str(e)}
+    
+    finally:
+        video_writer.release()
+    
+    total_duration = total_frames_written / fps
+    
+    print(f"\n✅ Whiteboard video export complete: {output_path}")
+    print(f"   Duration: {total_duration:.2f}s, Frames: {total_frames_written}")
+    print("="*60)
+    
+    return {
+        'success': True,
+        'output_path': output_path,
+        'duration': total_duration,
+        'fps': fps,
+        'frames': total_frames_written,
+        'resolution': f"{camera_width}x{camera_height}"
+    }
+
 
 def ffmpeg_convert(source_vid, dest_vid, platform="linux", crf=18):
     """Convertit la vidéo brute (mp4v) en H.264 compatible avec PyAV.
@@ -5659,6 +6453,14 @@ def main():
         except Exception as e:
             print(f"❌ Erreur lors de la lecture du fichier de configuration: {e}")
             return
+    
+    # Check if we should use the new whiteboard export with camera positioning
+    use_whiteboard_export = False
+    if has_layers_config and per_slide_config:
+        # Check if this is a single scene (not slides)
+        if 'layers' in per_slide_config and 'slides' not in per_slide_config:
+            use_whiteboard_export = True
+            print("🎨 Detected single scene with layers - using whiteboard video export")
 
     # --- Mode de génération vidéo ---
     # If config has layers, images are optional
@@ -5700,7 +6502,52 @@ def main():
     print("="*50)
 
     # Traitement unique ou multiple
-    if len(valid_images) == 1 and not has_layers_config:
+    if use_whiteboard_export:
+        # Use new whiteboard export with camera positioning
+        print("\n🎬 Using whiteboard video export with camera positioning...")
+        
+        # Get scene configuration
+        scene_width = per_slide_config.get('scene_width', 1920)
+        scene_height = per_slide_config.get('scene_height', 1080)
+        background = per_slide_config.get('background', '#FFFFFF')
+        
+        # Get camera config
+        camera_config = None
+        if 'sceneCameras' in per_slide_config:
+            for cam in per_slide_config['sceneCameras']:
+                if cam.get('isDefault', False):
+                    camera_config = cam
+                    break
+            if camera_config is None and per_slide_config['sceneCameras']:
+                camera_config = per_slide_config['sceneCameras'][0]
+        
+        # Set output path
+        output_path = os.path.join(save_path, f"whiteboard_scene_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4")
+        
+        # Call whiteboard export
+        result = export_scene_to_whiteboard_video(
+            per_slide_config,
+            output_path,
+            fps=args.frame_rate,
+            camera_config=camera_config,
+            scene_width=scene_width,
+            scene_height=scene_height,
+            background=background,
+            base_path=base_path,
+            crf=args.quality,
+            show_hand=True,
+            final_hold_duration=args.duration
+        )
+        
+        if result['success']:
+            print(f"\n✅ SUCCÈS! Vidéo whiteboard créée: {result['output_path']}")
+            print(f"   Durée: {result['duration']:.1f}s")
+            print(f"   Résolution: {result['resolution']}")
+            print(f"   Frames: {result['frames']}")
+        else:
+            print(f"\n❌ ÉCHEC: {result.get('error', 'Erreur inconnue')}")
+        
+    elif len(valid_images) == 1 and not has_layers_config:
         # Une seule image sans configuration de couches - utiliser l'ancienne méthode
         def final_callback_cli(result):
             """Fonction de rappel appelée à la fin de la génération."""

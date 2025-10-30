@@ -13,5 +13,10 @@ build/
 # Test files
 test_images/
 test_*.json
+test_*.png
+test_*.mp4
+test_*.avi
 test_output/
 demo_scene_cameras_config.json
+demo_*.png
+demo_*.mp4
