@@ -182,6 +182,7 @@ def render_text_to_image(text_config, target_width, target_height):
     line_height_multiplier = text_config.get('line_height', 1.2)
     align = text_config.get('align', 'left')
     position = text_config.get('position', None)
+    anchor_point = text_config.get('anchor_point', 'top-left')  # 'top-left' or 'center'
     direction = text_config.get('direction', 'auto')
     vertical = text_config.get('vertical', False)
     text_effects = text_config.get('text_effects', {})
@@ -332,6 +333,9 @@ def render_text_to_image(text_config, target_width, target_height):
     # Determine starting y position
     if position and 'y' in position:
         y = position['y']
+        # Apply anchor_point adjustment for y
+        if anchor_point == 'center':
+            y = y - total_height // 2
     else:
         # Center vertically if no position specified
         y = (target_height - total_height) // 2
@@ -362,6 +366,11 @@ def render_text_to_image(text_config, target_width, target_height):
             # ABSOLUTE POSITIONING: position.x is the left edge of the text bounding box
             # For multi-line text, alignment affects positioning relative to the longest line
             base_x = position['x']
+            
+            # Apply anchor_point adjustment for x
+            if anchor_point == 'center':
+                base_x = base_x - max_line_width // 2
+            
             if align == 'center':
                 # Center each line relative to the widest line
                 x = base_x + (max_line_width - line_width) // 2
@@ -4010,6 +4019,11 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
         layers_config: Liste de configurations de couches avec:
             - image_path: chemin vers l'image
             - position: dict avec x, y
+            - anchor_point: point d'ancrage de la position (optionnel, défaut 'top-left')
+                           'top-left': position est le coin supérieur gauche (comportement par défaut)
+                           'center': position est le centre de l'objet
+            - width: largeur explicite pour redimensionner (optionnel, priorité sur scale)
+            - height: hauteur explicite pour redimensionner (optionnel, priorité sur scale)
             - z_index: ordre de superposition
             - scale: échelle de l'image (optionnel, défaut 1.0)
             - opacity: opacité de la couche (optionnel, défaut 1.0)
@@ -4047,10 +4061,24 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
                     layer['position'] = text_config['position']
                 
                 print(f"    📝 Génération de texte pour composition")
-                # For layer-based rendering, position text at (0,0) in the canvas
-                # The layer positioning system will handle final placement
+                # For layer-based rendering with anchor_point, use layer position
+                # Otherwise, use text_config.position if available, else position at (0,0)
                 text_config_for_render = text_config.copy()
-                text_config_for_render['position'] = {'x': 0, 'y': 0}
+                anchor_point = layer.get('anchor_point', None)  # None means no anchor_point specified
+                layer_position = layer.get('position', None)
+                
+                if anchor_point == 'center' and layer_position:
+                    # For center anchor, use the layer position directly in text rendering
+                    text_config_for_render['position'] = layer_position
+                    text_config_for_render['anchor_point'] = 'center'
+                elif 'position' in text_config:
+                    # Use text_config.position (backward compatibility)
+                    # Don't override it
+                    pass
+                else:
+                    # No position specified, default to (0,0)
+                    text_config_for_render['position'] = {'x': 0, 'y': 0}
+                
                 layer_img = render_text_to_image(
                     text_config_for_render,
                     target_width,
@@ -4065,8 +4093,19 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
                 
                 shape_type = shape_config.get('shape', 'circle')
                 print(f"    🔷 Génération de forme pour composition: {shape_type}")
+                
+                # For center anchor, pass through the layer position to shape rendering
+                shape_config_for_render = shape_config.copy()
+                anchor_point = layer.get('anchor_point', 'top-left')
+                layer_position = layer.get('position', {'x': target_width // 2, 'y': target_height // 2})
+                
+                if anchor_point == 'center':
+                    # Use layer position for shape center
+                    shape_config_for_render['position'] = layer_position
+                # else shape_config already has its position
+                
                 layer_img = render_shape_to_image(
-                    shape_config,
+                    shape_config_for_render,
                     target_width,
                     target_height
                 )
@@ -4101,24 +4140,48 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
                 if layer_img is None:
                     continue
             
-            # Appliquer l'échelle si spécifiée
-            scale = layer.get('scale', 1.0)
-            if scale != 1.0:
+            # Appliquer le redimensionnement explicite (width/height) ou l'échelle
+            # width/height prend la priorité sur scale pour la compatibilité avec les éditeurs externes
+            explicit_width = layer.get('width', None)
+            explicit_height = layer.get('height', None)
+            scale = layer.get('scale', 1.0)  # Get scale for logging
+            
+            if explicit_width is not None and explicit_height is not None:
+                # Redimensionnement explicite demandé
+                new_width = int(explicit_width)
+                new_height = int(explicit_height)
+                layer_img = cv2.resize(layer_img, (new_width, new_height))
+            elif scale != 1.0:
+                # Utiliser scale si pas de width/height explicite
                 new_width = int(layer_img.shape[1] * scale)
                 new_height = int(layer_img.shape[0] * scale)
                 layer_img = cv2.resize(layer_img, (new_width, new_height))
             
-            # Obtenir la position
+            # Calculer les dimensions finales de la couche
+            layer_h, layer_w = layer_img.shape[:2]
+            
+            # Obtenir la position et le point d'ancrage
             position = layer.get('position', {'x': 0, 'y': 0})
-            x = int(position.get('x', 0))  # Convertir en entier
-            y = int(position.get('y', 0))  # Convertir en entier
+            anchor_point = layer.get('anchor_point', 'top-left')  # 'top-left' ou 'center'
+            
+            # For text/shape/arrow layers that render to full canvas, they handle positioning internally
+            # so we always use (0,0) for layer placement
+            if layer_type in ['text', 'shape', 'arrow']:
+                x = 0
+                y = 0
+            else:
+                x = int(position.get('x', 0))  # Convertir en entier
+                y = int(position.get('y', 0))  # Convertir en entier
+                
+                # Ajuster la position selon le point d'ancrage pour les images
+                if anchor_point == 'center':
+                    # Si le point d'ancrage est le centre, ajuster pour obtenir le coin supérieur gauche
+                    x = x - layer_w // 2
+                    y = y - layer_h // 2
             
             # Obtenir l'opacité
             opacity = layer.get('opacity', 1.0)
             opacity = max(0.0, min(1.0, opacity))  # Limiter entre 0 et 1
-            
-            # Calculer les dimensions de la région à copier
-            layer_h, layer_w = layer_img.shape[:2]
             
             # S'assurer que la couche reste dans les limites du canvas
             x1 = max(0, x)
@@ -4171,6 +4234,10 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
             # Get layer description for logging
             if layer_type == 'text':
                 layer_desc = f"text:{text_config.get('text', '')[:30]}..."
+            elif layer_type == 'shape':
+                layer_desc = f"shape:{shape_config.get('shape', 'unknown')}"
+            elif layer_type == 'arrow':
+                layer_desc = "arrow"
             else:
                 layer_desc = os.path.basename(image_path)
             
@@ -4379,17 +4446,39 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
                 if layer_img is None:
                     continue
             
-            # Apply scale if specified
-            scale = layer.get('scale', 1.0)
-            if scale != 1.0 and layer_img is not None:
-                new_width = int(layer_img.shape[1] * scale)
-                new_height = int(layer_img.shape[0] * scale)
-                layer_img = cv2.resize(layer_img, (new_width, new_height))
+            # Apply explicit resizing (width/height) or scale
+            # width/height takes priority over scale for compatibility with external editors
+            explicit_width = layer.get('width', None)
+            explicit_height = layer.get('height', None)
             
-            # Get layer position (in scene coordinates)
+            if explicit_width is not None and explicit_height is not None and layer_img is not None:
+                # Explicit resizing requested
+                new_width = int(explicit_width)
+                new_height = int(explicit_height)
+                layer_img = cv2.resize(layer_img, (new_width, new_height))
+            else:
+                # Use scale if no explicit width/height
+                scale = layer.get('scale', 1.0)
+                if scale != 1.0 and layer_img is not None:
+                    new_width = int(layer_img.shape[1] * scale)
+                    new_height = int(layer_img.shape[0] * scale)
+                    layer_img = cv2.resize(layer_img, (new_width, new_height))
+            
+            # Get final layer dimensions
+            layer_h, layer_w = layer_img.shape[:2] if layer_img is not None else (0, 0)
+            
+            # Get layer position (in scene coordinates) and anchor point
             position = layer.get('position', {'x': 0, 'y': 0})
+            anchor_point = layer.get('anchor_point', 'top-left')  # 'top-left' or 'center'
+            
             layer_x = position.get('x', 0)
             layer_y = position.get('y', 0)
+            
+            # Adjust position based on anchor point
+            if anchor_point == 'center':
+                # If anchor point is center, adjust to get top-left corner
+                layer_x = layer_x - layer_w // 2
+                layer_y = layer_y - layer_h // 2
             
             # Calculate layer position relative to camera viewport
             relative_x = layer_x - camera_x
