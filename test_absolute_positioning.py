@@ -111,12 +111,20 @@ def test_layer_composition():
         canvas = compose_layers(layers_config, 400, 300, temp_dir)
         
         # Check if image layer is at correct position
-        # The red square should be at position (50, 50)
-        pixel_at_position = canvas[50, 50]  # y, x order in numpy
-        if not np.array_equal(pixel_at_position, [128, 128, 128]):
-            print(f"✓ PASS: Image layer positioned at (50, 50)")
+        # The gray background should be at position (50, 50) - top-left of the image
+        # The red square (inset 10px) should be at position (60, 60)
+        pixel_at_topleft = canvas[50, 50]  # y, x order in numpy
+        pixel_inside_red = canvas[60, 60]
+        
+        # Top-left should be gray (background of the test image)
+        # Center of red rectangle should be red
+        if (np.array_equal(pixel_at_topleft, [128, 128, 128]) and 
+            np.array_equal(pixel_inside_red, [0, 0, 255])):
+            print(f"✓ PASS: Image layer positioned at (50, 50) - gray at corner, red at (60,60)")
         else:
             print(f"✗ FAIL: Image layer not at expected position")
+            print(f"  Pixel at (50, 50): {pixel_at_topleft} (expected [128, 128, 128])")
+            print(f"  Pixel at (60, 60): {pixel_inside_red} (expected [0, 0, 255])")
             return False
         
         # Check if text starts near position (50, 200)

@@ -1,0 +1,61 @@
+{
+  "canvas_width": 1920,
+  "canvas_height": 1080,
+  "slides": [
+    {
+      "index": 0,
+      "duration": 3,
+      "skip_rate": 10,
+      "layers": [
+        {
+          "type": "text",
+          "mode": "static",
+          "text_config": {
+            "text": "Top Left Text",
+            "font": "Arial",
+            "size": 48,
+            "color": [255, 0, 0],
+            "align": "left"
+          },
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "z_index": 1
+        },
+        {
+          "type": "text",
+          "mode": "static",
+          "text_config": {
+            "text": "Centered Text\nMultiple Lines\nAligned Center",
+            "font": "Arial",
+            "size": 36,
+            "color": [0, 255, 0],
+            "align": "center"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          },
+          "z_index": 2
+        },
+        {
+          "type": "text",
+          "mode": "static",
+          "text_config": {
+            "text": "Right Aligned\nText Here",
+            "font": "Arial",
+            "size": 32,
+            "color": [0, 0, 255],
+            "align": "right"
+          },
+          "position": {
+            "x": 1400,
+            "y": 700
+          },
+          "z_index": 3
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "canvas_width": 1920,
+  "canvas_height": 1080,
+  "slides": [
+    {
+      "index": 0,
+      "duration": 2,
+      "skip_rate": 10,
+      "layers": [
+        {
+          "type": "text",
+          "mode": "static",
+          "text_config": {
+            "text": "Test Text at 100,100",
+            "font": "Arial",
+            "size": 40,
+            "style": "normal",
+            "color": [255, 0, 0],
+            "align": "left",
+            "position": {
+              "x": 100,
+              "y": 100
+            }
+          },
+          "z_index": 0
+        }
+      ]
+    }
+  ]
+}

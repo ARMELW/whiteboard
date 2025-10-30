@@ -341,22 +341,36 @@ def render_text_to_image(text_config, target_width, target_height):
     outline = text_effects.get('outline', None)
     gradient = text_effects.get('gradient', None)
     
-    # Draw each line
+    # First pass: calculate all line widths to find the maximum for alignment
+    line_widths = []
     for line in lines:
-        # Get line width for alignment
         try:
             bbox = draw.textbbox((0, 0), line, font=font)
             line_width = bbox[2] - bbox[0]
         except:
             line_width = len(line) * font_size // 2
+        line_widths.append(line_width)
+    
+    max_line_width = max(line_widths) if line_widths else 0
+    
+    # Draw each line
+    for line_idx, line in enumerate(lines):
+        line_width = line_widths[line_idx]
         
         # Determine x position based on alignment
         if position and 'x' in position:
-            # ABSOLUTE POSITIONING: position.x is always the left edge of the text bounding box
-            # Alignment does not affect the position anchor point
-            x = position['x']
-            # Note: alignment could be used to affect multi-line text alignment within the bounding box
-            # but for now we treat position as absolute top-left corner
+            # ABSOLUTE POSITIONING: position.x is the left edge of the text bounding box
+            # For multi-line text, alignment affects positioning relative to the longest line
+            base_x = position['x']
+            if align == 'center':
+                # Center each line relative to the widest line
+                x = base_x + (max_line_width - line_width) // 2
+            elif align == 'right':
+                # Right-align each line relative to the widest line
+                x = base_x + (max_line_width - line_width)
+            else:  # left
+                # Left-align (default) - all lines start at base_x
+                x = base_x
         elif align == 'center':
             x = (target_width - line_width) // 2
         elif align == 'right':
@@ -3066,9 +3080,18 @@ def draw_layered_whiteboard_animations(
                     print(f"    ⚠️ Configuration de texte manquante ou invalide")
                     continue
                 
+                # Backward compatibility: if layer.position is not set but text_config.position is,
+                # use text_config.position as layer.position
+                if 'position' not in layer and 'position' in text_config:
+                    layer['position'] = text_config['position']
+                
                 print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\"")
+                # For layer-based rendering, position text at (0,0) in the canvas
+                # The layer positioning system will handle final placement
+                text_config_for_render = text_config.copy()
+                text_config_for_render['position'] = {'x': 0, 'y': 0}
                 layer_img_original = render_text_to_image(
-                    text_config,
+                    text_config_for_render,
                     variables.resize_wd,
                     variables.resize_ht
                 )
@@ -4018,9 +4041,18 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
                     print(f"    ⚠️ Configuration de texte manquante ou invalide")
                     continue
                 
+                # Backward compatibility: if layer.position is not set but text_config.position is,
+                # use text_config.position as layer.position
+                if 'position' not in layer and 'position' in text_config:
+                    layer['position'] = text_config['position']
+                
                 print(f"    📝 Génération de texte pour composition")
+                # For layer-based rendering, position text at (0,0) in the canvas
+                # The layer positioning system will handle final placement
+                text_config_for_render = text_config.copy()
+                text_config_for_render['position'] = {'x': 0, 'y': 0}
                 layer_img = render_text_to_image(
-                    text_config,
+                    text_config_for_render,
                     target_width,
                     target_height
                 )
