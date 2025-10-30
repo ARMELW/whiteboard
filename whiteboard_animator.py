@@ -4153,7 +4153,7 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
 
 
 def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920, scene_height=1080, 
-                               background='#FFFFFF', base_path="."):
+                               background='#FFFFFF', base_path=".", verbose=True):
     """Compose a scene with camera-based viewport positioning.
     
     Similar to the TypeScript exportSceneImage function, this renders a scene
@@ -4225,7 +4225,7 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
     camera_x = (camera_pos['x'] * scene_width) - (canvas_width / 2)
     camera_y = (camera_pos['y'] * scene_height) - (canvas_height / 2)
     
-    print(f"  📷 Camera viewport: {canvas_width}x{canvas_height} at scene position ({camera_x:.1f}, {camera_y:.1f})")
+    if verbose: print(f"  📷 Camera viewport: {canvas_width}x{canvas_height} at scene position ({camera_x:.1f}, {camera_y:.1f})")
     
     # Render scene background image if exists
     background_image = scene_config.get('backgroundImage', None)
@@ -4257,15 +4257,15 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
                 if source_width > 0 and source_height > 0:
                     cropped_bg = bg_img[source_y:source_y+source_height, source_x:source_x+source_width]
                     canvas = cv2.resize(cropped_bg, (canvas_width, canvas_height), interpolation=cv2.INTER_LINEAR)
-                    print(f"  🖼️  Background image rendered with camera cropping")
+                    if verbose: print(f"  🖼️  Background image rendered with camera cropping")
         except Exception as e:
-            print(f"  ⚠️ Failed to render background image: {e}")
+            if verbose: print(f"  ⚠️ Failed to render background image: {e}")
     
     # Get and sort layers by z_index
     layers = scene_config.get('layers', [])
     sorted_layers = sorted(layers, key=lambda x: x.get('z_index', 0))
     
-    print(f"  📐 Composing {len(sorted_layers)} layer(s) with camera positioning...")
+    if verbose: print(f"  📐 Composing {len(sorted_layers)} layer(s) with camera positioning...")
     
     # Render each layer
     for layer in sorted_layers:
@@ -4442,18 +4442,233 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
             # Log layer
             z_idx = layer.get('z_index', 0)
             layer_id = layer.get('id', 'unknown')
-            print(f"    ✓ Layer applied: {layer_type} (id:{layer_id}, z:{z_idx}, " +
+            if verbose: print(f"    ✓ Layer applied: {layer_type} (id:{layer_id}, z:{z_idx}, " +
                   f"scene_pos:({layer_x:.1f},{layer_y:.1f}), " +
                   f"viewport_pos:({relative_x:.1f},{relative_y:.1f}), " +
                   f"scale:{scale:.2f}, opacity:{opacity:.2f})")
             
         except Exception as e:
-            print(f"    ❌ Error rendering layer: {e}")
+            if verbose: print(f"    ❌ Error rendering layer: {e}")
             import traceback
             traceback.print_exc()
             continue
     
     return canvas
+
+
+def export_scene_to_video(scene_config, output_path, fps=30, duration=None, 
+                          camera_config=None, scene_width=1920, scene_height=1080,
+                          background='#FFFFFF', base_path=".", crf=18,
+                          camera_animation=None):
+    """Export a scene to video with camera-based viewport positioning.
+    
+    This function uses the compose_scene_with_camera logic to render each frame
+    of the video, properly placing all elements relative to the camera viewport.
+    
+    Args:
+        scene_config: Scene configuration dict with:
+            - layers: List of layer configurations
+            - backgroundImage: Optional background image path
+            - sceneCameras: Optional list of camera configurations
+            - duration: Optional scene duration in seconds (overrides duration parameter)
+        output_path: Path to save the output video file
+        fps: Frames per second (default: 30)
+        duration: Video duration in seconds (default: 5.0, or from scene_config)
+        camera_config: Optional camera configuration dict (if None, uses sceneCameras)
+        scene_width: Scene width in pixels (default: 1920)
+        scene_height: Scene height in pixels (default: 1080)
+        background: Background color (default: '#FFFFFF')
+        base_path: Base path for resolving relative file paths
+        crf: Video quality (0-51, lower = better, 18 is visually lossless)
+        camera_animation: Optional dict with camera animation config:
+            - type: 'pan', 'zoom', 'static' (default: 'static')
+            - start_position: Starting camera position {'x', 'y'}
+            - end_position: Ending camera position {'x', 'y'}
+            - start_zoom: Starting zoom level (for zoom animation)
+            - end_zoom: Ending zoom level (for zoom animation)
+            - easing: 'linear', 'ease_in', 'ease_out', 'ease_in_out'
+    
+    Returns:
+        dict: Status information with 'success' boolean and 'output_path' string
+    """
+    print("\n" + "="*60)
+    print("🎬 SCENE VIDEO EXPORT")
+    print("="*60)
+    
+    # Determine duration
+    if duration is None:
+        duration = scene_config.get('duration', 5.0)
+    
+    # Calculate total frames
+    total_frames = int(duration * fps)
+    
+    print(f"  📹 Output: {output_path}")
+    print(f"  ⏱️  Duration: {duration}s ({total_frames} frames @ {fps} fps)")
+    
+    # Get camera configuration
+    if camera_config is None:
+        scene_cameras = scene_config.get('sceneCameras', [])
+        if scene_cameras:
+            for cam in scene_cameras:
+                if cam.get('isDefault', False):
+                    camera_config = cam
+                    break
+            if camera_config is None and scene_cameras:
+                camera_config = scene_cameras[0]
+    
+    # Set default camera if still None
+    if camera_config is None:
+        camera_config = {
+            'width': scene_width,
+            'height': scene_height,
+            'position': {'x': 0.5, 'y': 0.5}
+        }
+    
+    # Get camera dimensions
+    camera_width = int(camera_config.get('width', scene_width))
+    camera_height = int(camera_config.get('height', scene_height))
+    
+    print(f"  📷 Camera: {camera_width}x{camera_height}")
+    
+    # Initialize video writer
+    try:
+        # Determine video codec
+        if output_path.endswith('.avi'):
+            fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+        else:
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        
+        video_writer = cv2.VideoWriter(
+            output_path,
+            fourcc,
+            fps,
+            (camera_width, camera_height)
+        )
+        
+        if not video_writer.isOpened():
+            raise Exception("Failed to open video writer")
+        
+        print(f"  ✓ Video writer initialized")
+        
+    except Exception as e:
+        print(f"  ❌ Failed to initialize video writer: {e}")
+        return {'success': False, 'error': str(e)}
+    
+    # Helper function for easing
+    def apply_easing(t, easing='linear'):
+        """Apply easing function to normalized time t (0.0 to 1.0)."""
+        if easing == 'ease_in':
+            return t * t
+        elif easing == 'ease_out':
+            return 1 - (1 - t) * (1 - t)
+        elif easing == 'ease_in_out':
+            if t < 0.5:
+                return 2 * t * t
+            else:
+                return 1 - 2 * (1 - t) * (1 - t)
+        else:  # linear
+            return t
+    
+    # Render frames
+    try:
+        print(f"  🎨 Rendering {total_frames} frames...")
+        
+        for frame_idx in range(total_frames):
+            # Calculate progress (0.0 to 1.0)
+            progress = frame_idx / max(1, total_frames - 1) if total_frames > 1 else 0.0
+            
+            # Calculate current camera configuration based on animation
+            current_camera = camera_config.copy()
+            
+            if camera_animation:
+                anim_type = camera_animation.get('type', 'static')
+                easing = camera_animation.get('easing', 'linear')
+                eased_progress = apply_easing(progress, easing)
+                
+                if anim_type == 'pan':
+                    # Pan camera from start to end position
+                    start_pos = camera_animation.get('start_position', {'x': 0.5, 'y': 0.5})
+                    end_pos = camera_animation.get('end_position', {'x': 0.5, 'y': 0.5})
+                    
+                    current_x = start_pos['x'] + (end_pos['x'] - start_pos['x']) * eased_progress
+                    current_y = start_pos['y'] + (end_pos['y'] - start_pos['y']) * eased_progress
+                    
+                    current_camera['position'] = {'x': current_x, 'y': current_y}
+                
+                elif anim_type == 'zoom':
+                    # Zoom camera
+                    start_zoom = camera_animation.get('start_zoom', 1.0)
+                    end_zoom = camera_animation.get('end_zoom', 2.0)
+                    
+                    current_zoom = start_zoom + (end_zoom - start_zoom) * eased_progress
+                    
+                    # Adjust camera size based on zoom
+                    base_width = camera_animation.get('base_width', camera_width)
+                    base_height = camera_animation.get('base_height', camera_height)
+                    
+                    current_camera['width'] = int(base_width / current_zoom)
+                    current_camera['height'] = int(base_height / current_zoom)
+            
+            # Compose frame using the camera positioning logic (verbose=False for performance)
+            frame = compose_scene_with_camera(
+                scene_config,
+                current_camera,
+                scene_width,
+                scene_height,
+                background,
+                base_path,
+                verbose=False  # Disable per-frame logging for performance
+            )
+            
+            # Ensure frame dimensions match camera dimensions
+            if frame.shape[:2] != (camera_height, camera_width):
+                frame = cv2.resize(frame, (camera_width, camera_height))
+            
+            # Write frame
+            video_writer.write(frame)
+            
+            # Progress indicator
+            if (frame_idx + 1) % max(1, total_frames // 10) == 0:
+                percent = int((frame_idx + 1) / total_frames * 100)
+                print(f"    Progress: {percent}% ({frame_idx + 1}/{total_frames} frames)")
+        
+        print(f"  ✓ All frames rendered")
+        
+    except Exception as e:
+        print(f"  ❌ Error rendering frames: {e}")
+        import traceback
+        traceback.print_exc()
+        video_writer.release()
+        return {'success': False, 'error': str(e)}
+    
+    finally:
+        video_writer.release()
+    
+    # Convert to H.264 if requested
+    if crf is not None and crf != 18:
+        temp_path = output_path.replace('.mp4', '_temp.mp4')
+        os.rename(output_path, temp_path)
+        
+        try:
+            print(f"  🔄 Converting to H.264 (CRF={crf})...")
+            ffmpeg_convert(temp_path, output_path, crf=crf)
+            os.remove(temp_path)
+            print(f"  ✓ Conversion complete")
+        except Exception as e:
+            print(f"  ⚠️ Conversion failed: {e}")
+            os.rename(temp_path, output_path)
+    
+    print(f"\n✅ Video export complete: {output_path}")
+    print("="*60)
+    
+    return {
+        'success': True,
+        'output_path': output_path,
+        'duration': duration,
+        'fps': fps,
+        'frames': total_frames,
+        'resolution': f"{camera_width}x{camera_height}"
+    }
 
 
 def ffmpeg_convert(source_vid, dest_vid, platform="linux", crf=18):
