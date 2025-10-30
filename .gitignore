@@ -13,5 +13,6 @@ build/
 # Test files
 test_images/
 test_*.json
+test_*.png
 test_output/
 demo_scene_cameras_config.json
