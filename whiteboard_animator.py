@@ -3080,6 +3080,11 @@ def draw_layered_whiteboard_animations(
                     print(f"    ⚠️ Configuration de texte manquante ou invalide")
                     continue
                 
+                # Backward compatibility: if layer.position is not set but text_config.position is,
+                # use text_config.position as layer.position
+                if 'position' not in layer and 'position' in text_config:
+                    layer['position'] = text_config['position']
+                
                 print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\"")
                 # For layer-based rendering, position text at (0,0) in the canvas
                 # The layer positioning system will handle final placement
@@ -4035,6 +4040,11 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
                 if not text_config or 'text' not in text_config:
                     print(f"    ⚠️ Configuration de texte manquante ou invalide")
                     continue
+                
+                # Backward compatibility: if layer.position is not set but text_config.position is,
+                # use text_config.position as layer.position
+                if 'position' not in layer and 'position' in text_config:
+                    layer['position'] = text_config['position']
                 
                 print(f"    📝 Génération de texte pour composition")
                 # For layer-based rendering, position text at (0,0) in the canvas
