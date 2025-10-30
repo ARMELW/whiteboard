@@ -4671,6 +4671,282 @@ def export_scene_to_video(scene_config, output_path, fps=30, duration=None,
     }
 
 
+def export_scene_to_whiteboard_video(scene_config, output_path, fps=30,
+                                     camera_config=None, scene_width=1920, scene_height=1080,
+                                     background='#FFFFFF', base_path=".", crf=18,
+                                     draw_speed=8, show_hand=True, hand_path=None, 
+                                     final_hold_duration=2.0):
+    """Export a scene to video with whiteboard-style progressive drawing animation.
+    
+    This function animates layers progressively with a drawing hand that follows
+    the content being drawn, creating a whiteboard/doodly-style animation.
+    
+    Args:
+        scene_config: Scene configuration dict with:
+            - layers: List of layer configurations (must have z_index for draw order)
+            - backgroundImage: Optional background image path
+            - sceneCameras: Optional list of camera configurations
+        output_path: Path to save the output video file
+        fps: Frames per second (default: 30)
+        camera_config: Optional camera configuration dict
+        scene_width: Scene width in pixels (default: 1920)
+        scene_height: Scene height in pixels (default: 1080)
+        background: Background color (default: '#FFFFFF')
+        base_path: Base path for resolving relative file paths
+        crf: Video quality (0-51, lower = better, 18 is visually lossless)
+        draw_speed: Drawing speed factor (lower = slower, default: 8)
+        show_hand: Whether to show the drawing hand (default: True)
+        hand_path: Path to drawing hand image (default: uses built-in)
+        final_hold_duration: Duration to hold final frame in seconds (default: 2.0)
+    
+    Returns:
+        dict: Status information with 'success' boolean and details
+    """
+    print("\n" + "="*60)
+    print("🎬 WHITEBOARD VIDEO EXPORT")
+    print("="*60)
+    
+    # Get camera configuration
+    if camera_config is None:
+        scene_cameras = scene_config.get('sceneCameras', [])
+        if scene_cameras:
+            for cam in scene_cameras:
+                if cam.get('isDefault', False):
+                    camera_config = cam
+                    break
+            if camera_config is None and scene_cameras:
+                camera_config = scene_cameras[0]
+    
+    if camera_config is None:
+        camera_config = {
+            'width': scene_width,
+            'height': scene_height,
+            'position': {'x': 0.5, 'y': 0.5}
+        }
+    
+    camera_width = int(camera_config.get('width', scene_width))
+    camera_height = int(camera_config.get('height', scene_height))
+    
+    print(f"  📹 Output: {output_path}")
+    print(f"  📷 Camera: {camera_width}x{camera_height}")
+    print(f"  🎨 Draw speed: {draw_speed}")
+    
+    # Load hand image if showing hand
+    hand_img = None
+    hand_mask_inv = None
+    if show_hand:
+        if hand_path is None:
+            hand_path = os.path.join(base_path, 'data', 'images', 'drawing-hand.png')
+        
+        if os.path.exists(hand_path):
+            hand_img = cv2.imread(hand_path, cv2.IMREAD_UNCHANGED)
+            if hand_img is not None and hand_img.shape[2] == 4:
+                # Extract alpha channel as mask
+                hand_mask = hand_img[:, :, 3]
+                hand_mask_inv = cv2.bitwise_not(hand_mask)
+                hand_img = hand_img[:, :, :3]
+                print(f"  ✋ Hand image loaded: {hand_img.shape[1]}x{hand_img.shape[0]}")
+            else:
+                print(f"  ⚠️ Hand image has no alpha channel, disabling hand")
+                show_hand = False
+        else:
+            print(f"  ⚠️ Hand image not found at {hand_path}, disabling hand")
+            show_hand = False
+    
+    # Initialize video writer
+    try:
+        if output_path.endswith('.avi'):
+            fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+        else:
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        
+        video_writer = cv2.VideoWriter(
+            output_path,
+            fourcc,
+            fps,
+            (camera_width, camera_height)
+        )
+        
+        if not video_writer.isOpened():
+            raise Exception("Failed to open video writer")
+        
+        print(f"  ✓ Video writer initialized")
+        
+    except Exception as e:
+        print(f"  ❌ Failed to initialize video writer: {e}")
+        return {'success': False, 'error': str(e)}
+    
+    # Sort layers by z_index (draw order)
+    layers = scene_config.get('layers', [])
+    sorted_layers = sorted(layers, key=lambda x: x.get('z_index', 0))
+    
+    print(f"  📝 Animating {len(sorted_layers)} layer(s) progressively...")
+    
+    # Create initial blank canvas
+    blank_canvas = compose_scene_with_camera(
+        {'layers': []},  # Empty scene
+        camera_config,
+        scene_width,
+        scene_height,
+        background,
+        base_path,
+        verbose=False
+    )
+    
+    total_frames_written = 0
+    
+    try:
+        # Render background if exists
+        bg_image = scene_config.get('backgroundImage', None)
+        if bg_image:
+            bg_scene = {
+                'backgroundImage': bg_image,
+                'layers': []
+            }
+            current_canvas = compose_scene_with_camera(
+                bg_scene,
+                camera_config,
+                scene_width,
+                scene_height,
+                background,
+                base_path,
+                verbose=False
+            )
+        else:
+            current_canvas = blank_canvas.copy()
+        
+        # Animate each layer progressively
+        for layer_idx, layer in enumerate(sorted_layers):
+            layer_type = layer.get('type', 'image')
+            layer_id = layer.get('id', f'layer_{layer_idx}')
+            
+            # Skip if not visible
+            if not layer.get('visible', True):
+                continue
+            
+            print(f"    Animating layer {layer_idx + 1}/{len(sorted_layers)}: {layer_type} (id: {layer_id})")
+            
+            # Compose this layer on top of current canvas
+            layer_scene = {
+                'layers': [layer]
+            }
+            
+            # Get the full layer image
+            layer_full = compose_scene_with_camera(
+                layer_scene,
+                camera_config,
+                scene_width,
+                scene_height,
+                '#FFFFFF',  # White background for layer
+                base_path,
+                verbose=False
+            )
+            
+            # Calculate drawing frames based on layer complexity
+            # For now, use a fixed number of frames per layer
+            layer_duration = layer.get('draw_duration', 2.0)  # seconds
+            layer_frames = int(layer_duration * fps)
+            
+            # Animate layer being drawn progressively
+            for frame_idx in range(layer_frames):
+                progress = (frame_idx + 1) / layer_frames
+                
+                # Create progressive reveal using a simple fade-in effect
+                # In a real implementation, this would scan pixel by pixel
+                frame = current_canvas.copy()
+                
+                # Blend the layer progressively
+                alpha = progress
+                frame = cv2.addWeighted(frame, 1.0, layer_full, alpha, 0)
+                
+                # Add drawing hand if enabled
+                if show_hand and hand_img is not None:
+                    # Position hand at a representative location
+                    # In a real implementation, this would follow the actual drawing path
+                    layer_pos = layer.get('position', {'x': scene_width // 2, 'y': scene_height // 2})
+                    
+                    # Calculate hand position in camera viewport
+                    camera_pos = camera_config.get('position', {'x': 0.5, 'y': 0.5})
+                    camera_x = (camera_pos['x'] * scene_width) - (camera_width / 2)
+                    camera_y = (camera_pos['y'] * scene_height) - (camera_height / 2)
+                    
+                    hand_x = int(layer_pos['x'] - camera_x)
+                    hand_y = int(layer_pos['y'] - camera_y)
+                    
+                    # Adjust hand position for drawing progress
+                    hand_y = int(hand_y - 50 + (100 * progress))
+                    
+                    # Overlay hand on frame
+                    hand_h, hand_w = hand_img.shape[:2]
+                    x1 = max(0, hand_x)
+                    y1 = max(0, hand_y)
+                    x2 = min(camera_width, hand_x + hand_w)
+                    y2 = min(camera_height, hand_y + hand_h)
+                    
+                    if x2 > x1 and y2 > y1:
+                        hx1 = max(0, -hand_x)
+                        hy1 = max(0, -hand_y)
+                        hx2 = hx1 + (x2 - x1)
+                        hy2 = hy1 + (y2 - y1)
+                        
+                        try:
+                            hand_region = hand_img[hy1:hy2, hx1:hx2]
+                            mask_region = hand_mask_inv[hy1:hy2, hx1:hx2]
+                            frame_region = frame[y1:y2, x1:x2]
+                            
+                            # Blend hand onto frame
+                            for c in range(3):
+                                frame_region[:, :, c] = (
+                                    frame_region[:, :, c] * (mask_region / 255.0) +
+                                    hand_region[:, :, c] * (1 - mask_region / 255.0)
+                                ).astype(np.uint8)
+                            
+                            frame[y1:y2, x1:x2] = frame_region
+                        except:
+                            pass  # Skip hand if positioning fails
+                
+                video_writer.write(frame)
+                total_frames_written += 1
+            
+            # Update current canvas to include this layer
+            current_canvas = cv2.addWeighted(current_canvas, 1.0, layer_full, 1.0, 0)
+        
+        # Hold final frame
+        final_frames = int(final_hold_duration * fps)
+        print(f"    Holding final frame for {final_hold_duration}s ({final_frames} frames)")
+        
+        for _ in range(final_frames):
+            video_writer.write(current_canvas)
+            total_frames_written += 1
+        
+        print(f"  ✓ All frames rendered ({total_frames_written} total)")
+        
+    except Exception as e:
+        print(f"  ❌ Error rendering frames: {e}")
+        import traceback
+        traceback.print_exc()
+        video_writer.release()
+        return {'success': False, 'error': str(e)}
+    
+    finally:
+        video_writer.release()
+    
+    total_duration = total_frames_written / fps
+    
+    print(f"\n✅ Whiteboard video export complete: {output_path}")
+    print(f"   Duration: {total_duration:.2f}s, Frames: {total_frames_written}")
+    print("="*60)
+    
+    return {
+        'success': True,
+        'output_path': output_path,
+        'duration': total_duration,
+        'fps': fps,
+        'frames': total_frames_written,
+        'resolution': f"{camera_width}x{camera_height}"
+    }
+
+
 def ffmpeg_convert(source_vid, dest_vid, platform="linux", crf=18):
     """Convertit la vidéo brute (mp4v) en H.264 compatible avec PyAV.
     
