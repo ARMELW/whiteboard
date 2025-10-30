@@ -4152,6 +4152,309 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
     return canvas
 
 
+def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920, scene_height=1080, 
+                               background='#FFFFFF', base_path="."):
+    """Compose a scene with camera-based viewport positioning.
+    
+    Similar to the TypeScript exportSceneImage function, this renders a scene
+    with all layers positioned correctly relative to the camera viewport.
+    
+    Args:
+        scene_config: Scene configuration dict with:
+            - layers: List of layer configurations
+            - backgroundImage: Optional background image path
+            - sceneCameras: Optional list of camera configurations (first default camera will be used)
+        camera_config: Optional camera configuration dict with:
+            - width: Camera viewport width (default: 800)
+            - height: Camera viewport height (default: 450)
+            - position: Dict with x, y (0.0-1.0, default 0.5, 0.5 for center)
+            - isDefault: Boolean indicating if this is the default camera
+        scene_width: Scene width in pixels (default: 1920)
+        scene_height: Scene height in pixels (default: 1080)
+        background: Background color (hex string or RGB tuple, default: '#FFFFFF')
+        base_path: Base path for resolving relative file paths
+    
+    Returns:
+        Composed image as numpy array (BGR format)
+    """
+    # Get camera configuration
+    if camera_config is None:
+        # Try to get default camera from scene_config
+        scene_cameras = scene_config.get('sceneCameras', [])
+        if scene_cameras:
+            # Find default camera
+            for cam in scene_cameras:
+                if cam.get('isDefault', False):
+                    camera_config = cam
+                    break
+            # If no default found, use first camera
+            if camera_config is None and scene_cameras:
+                camera_config = scene_cameras[0]
+    
+    # Set default camera values if no camera config
+    if camera_config is None:
+        camera_config = {
+            'width': 800,
+            'height': 450,
+            'position': {'x': 0.5, 'y': 0.5}
+        }
+    
+    # Use camera dimensions for canvas
+    canvas_width = int(camera_config.get('width', 800))
+    canvas_height = int(camera_config.get('height', 450))
+    
+    # Parse background color
+    if isinstance(background, str):
+        if background.startswith('#'):
+            # Convert hex to BGR
+            rgb = tuple(int(background[i:i+2], 16) for i in (1, 3, 5))
+            bg_color = (rgb[2], rgb[1], rgb[0])  # Convert RGB to BGR
+        else:
+            bg_color = (255, 255, 255)  # Default white
+    elif isinstance(background, (list, tuple)) and len(background) == 3:
+        # Assume RGB, convert to BGR
+        bg_color = (background[2], background[1], background[0])
+    else:
+        bg_color = (255, 255, 255)
+    
+    # Create canvas with background color
+    canvas = np.full((canvas_height, canvas_width, 3), bg_color, dtype=np.uint8)
+    
+    # Calculate camera viewport in scene coordinates
+    camera_pos = camera_config.get('position', {'x': 0.5, 'y': 0.5})
+    camera_x = (camera_pos['x'] * scene_width) - (canvas_width / 2)
+    camera_y = (camera_pos['y'] * scene_height) - (canvas_height / 2)
+    
+    print(f"  📷 Camera viewport: {canvas_width}x{canvas_height} at scene position ({camera_x:.1f}, {camera_y:.1f})")
+    
+    # Render scene background image if exists
+    background_image = scene_config.get('backgroundImage', None)
+    if background_image:
+        try:
+            # Load background image
+            if background_image.startswith('http://') or background_image.startswith('https://'):
+                bg_img = load_image_from_url_or_path(background_image)
+            else:
+                if not os.path.isabs(background_image):
+                    background_image = os.path.join(base_path, background_image)
+                bg_img = load_image_from_url_or_path(background_image)
+            
+            if bg_img is not None:
+                # Calculate source rectangle (portion of background to show)
+                bg_h, bg_w = bg_img.shape[:2]
+                source_x = int((camera_x / scene_width) * bg_w)
+                source_y = int((camera_y / scene_height) * bg_h)
+                source_width = int((canvas_width / scene_width) * bg_w)
+                source_height = int((canvas_height / scene_height) * bg_h)
+                
+                # Clamp to image bounds
+                source_x = max(0, min(source_x, bg_w - 1))
+                source_y = max(0, min(source_y, bg_h - 1))
+                source_width = min(source_width, bg_w - source_x)
+                source_height = min(source_height, bg_h - source_y)
+                
+                # Extract and resize the cropped portion
+                if source_width > 0 and source_height > 0:
+                    cropped_bg = bg_img[source_y:source_y+source_height, source_x:source_x+source_width]
+                    canvas = cv2.resize(cropped_bg, (canvas_width, canvas_height), interpolation=cv2.INTER_LINEAR)
+                    print(f"  🖼️  Background image rendered with camera cropping")
+        except Exception as e:
+            print(f"  ⚠️ Failed to render background image: {e}")
+    
+    # Get and sort layers by z_index
+    layers = scene_config.get('layers', [])
+    sorted_layers = sorted(layers, key=lambda x: x.get('z_index', 0))
+    
+    print(f"  📐 Composing {len(sorted_layers)} layer(s) with camera positioning...")
+    
+    # Render each layer
+    for layer in sorted_layers:
+        try:
+            # Check layer visibility
+            if not layer.get('visible', True):
+                continue
+            
+            layer_type = layer.get('type', 'image')
+            
+            # Render layer to image based on type
+            layer_img = None
+            
+            if layer_type == 'text':
+                text_config = layer.get('text_config', {})
+                if not text_config or 'text' not in text_config:
+                    continue
+                # Render text to full scene size, we'll crop later
+                layer_img = render_text_to_image(text_config, scene_width, scene_height)
+                
+            elif layer_type == 'shape':
+                shape_config = layer.get('shape_config', {})
+                if not shape_config:
+                    continue
+                # Render shape to full scene size
+                layer_img = render_shape_to_image(shape_config, scene_width, scene_height)
+                
+            elif layer_type == 'arrow':
+                arrow_config = layer.get('arrow_config', {})
+                if not arrow_config or 'start' not in arrow_config or 'end' not in arrow_config:
+                    continue
+                # Render arrow fully drawn
+                layer_img = np.ones((scene_height, scene_width, 3), dtype=np.uint8) * 255
+                layer_img = draw_arrow_progressive(layer_img, arrow_config, 1.0, scene_width, scene_height)
+                
+            elif layer_type == 'whiteboard':
+                # For whiteboard/strokes, we need to render strokes
+                strokes = layer.get('strokes', [])
+                if not strokes:
+                    continue
+                # Create white canvas and render strokes
+                layer_img = np.ones((scene_height, scene_width, 3), dtype=np.uint8) * 255
+                # Render each stroke
+                for stroke in strokes:
+                    points = stroke.get('points', [])
+                    if len(points) < 2:
+                        continue
+                    stroke_width = stroke.get('strokeWidth', stroke.get('stroke_width', 2))
+                    stroke_color_str = stroke.get('strokeColor', stroke.get('stroke_color', '#000000'))
+                    # Parse stroke color
+                    if isinstance(stroke_color_str, str) and stroke_color_str.startswith('#'):
+                        rgb = tuple(int(stroke_color_str[i:i+2], 16) for i in (1, 3, 5))
+                        stroke_color = (rgb[2], rgb[1], rgb[0])  # RGB to BGR
+                    else:
+                        stroke_color = (0, 0, 0)
+                    
+                    # Draw stroke path
+                    if len(points) == 2:
+                        pt1 = (int(points[0]['x']), int(points[0]['y']))
+                        pt2 = (int(points[1]['x']), int(points[1]['y']))
+                        cv2.line(layer_img, pt1, pt2, stroke_color, int(stroke_width))
+                    else:
+                        # Use quadratic curves for smooth strokes
+                        for i in range(len(points) - 1):
+                            pt1 = (int(points[i]['x']), int(points[i]['y']))
+                            pt2 = (int(points[i+1]['x']), int(points[i+1]['y']))
+                            cv2.line(layer_img, pt1, pt2, stroke_color, int(stroke_width))
+                
+            else:
+                # Image layer
+                image_path = layer.get('image_path', '')
+                if not image_path:
+                    continue
+                # Resolve path
+                if not (image_path.startswith('http://') or image_path.startswith('https://')):
+                    if not os.path.isabs(image_path):
+                        image_path = os.path.join(base_path, image_path)
+                layer_img = load_image_from_url_or_path(image_path)
+                if layer_img is None:
+                    continue
+            
+            # Apply scale if specified
+            scale = layer.get('scale', 1.0)
+            if scale != 1.0 and layer_img is not None:
+                new_width = int(layer_img.shape[1] * scale)
+                new_height = int(layer_img.shape[0] * scale)
+                layer_img = cv2.resize(layer_img, (new_width, new_height))
+            
+            # Get layer position (in scene coordinates)
+            position = layer.get('position', {'x': 0, 'y': 0})
+            layer_x = position.get('x', 0)
+            layer_y = position.get('y', 0)
+            
+            # Calculate layer position relative to camera viewport
+            relative_x = layer_x - camera_x
+            relative_y = layer_y - camera_y
+            
+            # Get rotation and flip
+            rotation = layer.get('rotation', 0)
+            flip_x = layer.get('flipX', False)
+            flip_y = layer.get('flipY', False)
+            
+            # Apply transformations if needed
+            if rotation != 0 or flip_x or flip_y:
+                # Get image dimensions
+                layer_h, layer_w = layer_img.shape[:2]
+                
+                # Apply flip
+                if flip_x:
+                    layer_img = cv2.flip(layer_img, 1)  # Horizontal flip
+                if flip_y:
+                    layer_img = cv2.flip(layer_img, 0)  # Vertical flip
+                
+                # Apply rotation
+                if rotation != 0:
+                    # Get rotation matrix (rotate around center)
+                    center = (layer_w / 2, layer_h / 2)
+                    rotation_matrix = cv2.getRotationMatrix2D(center, rotation, 1.0)
+                    # Calculate new bounding box
+                    cos = np.abs(rotation_matrix[0, 0])
+                    sin = np.abs(rotation_matrix[0, 1])
+                    new_w = int((layer_h * sin) + (layer_w * cos))
+                    new_h = int((layer_h * cos) + (layer_w * sin))
+                    # Adjust rotation matrix for new size
+                    rotation_matrix[0, 2] += (new_w / 2) - center[0]
+                    rotation_matrix[1, 2] += (new_h / 2) - center[1]
+                    # Apply rotation with white background
+                    layer_img = cv2.warpAffine(layer_img, rotation_matrix, (new_w, new_h), 
+                                               borderMode=cv2.BORDER_CONSTANT, 
+                                               borderValue=(255, 255, 255))
+                    # Adjust position to account for size change
+                    relative_x -= (new_w - layer_w) / 2
+                    relative_y -= (new_h - layer_h) / 2
+            
+            # Get opacity
+            opacity = layer.get('opacity', 1.0)
+            opacity = max(0.0, min(1.0, opacity))
+            
+            # Calculate region to copy
+            layer_h, layer_w = layer_img.shape[:2]
+            
+            # Calculate intersection with canvas
+            x1_canvas = max(0, int(relative_x))
+            y1_canvas = max(0, int(relative_y))
+            x2_canvas = min(canvas_width, int(relative_x + layer_w))
+            y2_canvas = min(canvas_height, int(relative_y + layer_h))
+            
+            # Calculate corresponding region in layer image
+            x1_layer = max(0, int(-relative_x))
+            y1_layer = max(0, int(-relative_y))
+            x2_layer = x1_layer + (x2_canvas - x1_canvas)
+            y2_layer = y1_layer + (y2_canvas - y1_canvas)
+            
+            # Check if there's a valid region to copy
+            if x2_canvas <= x1_canvas or y2_canvas <= y1_canvas:
+                continue
+            
+            # Extract regions
+            layer_region = layer_img[y1_layer:y2_layer, x1_layer:x2_layer]
+            canvas_region = canvas[y1_canvas:y2_canvas, x1_canvas:x2_canvas].copy()
+            
+            # Blend with opacity
+            if opacity < 1.0:
+                canvas[y1_canvas:y2_canvas, x1_canvas:x2_canvas] = cv2.addWeighted(
+                    canvas_region, 1 - opacity, layer_region, opacity, 0
+                )
+            else:
+                # For opacity 1.0, copy only non-white pixels (preserve transparency)
+                threshold = 250
+                layer_content_mask = np.any(layer_region < threshold, axis=2)
+                canvas_region[layer_content_mask] = layer_region[layer_content_mask]
+                canvas[y1_canvas:y2_canvas, x1_canvas:x2_canvas] = canvas_region
+            
+            # Log layer
+            z_idx = layer.get('z_index', 0)
+            layer_id = layer.get('id', 'unknown')
+            print(f"    ✓ Layer applied: {layer_type} (id:{layer_id}, z:{z_idx}, " +
+                  f"scene_pos:({layer_x:.1f},{layer_y:.1f}), " +
+                  f"viewport_pos:({relative_x:.1f},{relative_y:.1f}), " +
+                  f"scale:{scale:.2f}, opacity:{opacity:.2f})")
+            
+        except Exception as e:
+            print(f"    ❌ Error rendering layer: {e}")
+            import traceback
+            traceback.print_exc()
+            continue
+    
+    return canvas
+
 
 def ffmpeg_convert(source_vid, dest_vid, platform="linux", crf=18):
     """Convertit la vidéo brute (mp4v) en H.264 compatible avec PyAV.
