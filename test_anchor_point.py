@@ -35,8 +35,9 @@ def test_anchor_point_top_left():
     target_height = 300
     
     # Create a test image
-    test_img_path = tempfile.mktemp(suffix='.png')
     test_img = create_test_image(100, 80, (0, 0, 255))  # Red image in BGR format
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        test_img_path = f.name
     cv2.imwrite(test_img_path, test_img)
     
     try:
@@ -77,8 +78,9 @@ def test_anchor_point_center():
     target_height = 300
     
     # Create a test image (100x80)
-    test_img_path = tempfile.mktemp(suffix='.png')
     test_img = create_test_image(100, 80, (0, 255, 0))  # Green image in BGR format
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        test_img_path = f.name
     cv2.imwrite(test_img_path, test_img)
     
     try:
@@ -127,8 +129,9 @@ def test_anchor_point_with_width_height():
     target_height = 300
     
     # Create a test image (original 100x80)
-    test_img_path = tempfile.mktemp(suffix='.png')
     test_img = create_test_image(100, 80, (255, 0, 0))  # Blue image in BGR format
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        test_img_path = f.name
     cv2.imwrite(test_img_path, test_img)
     
     try:
@@ -258,8 +261,9 @@ def test_backwards_compatibility():
     target_height = 300
     
     # Create a test image
-    test_img_path = tempfile.mktemp(suffix='.png')
     test_img = create_test_image(100, 80, (0, 165, 255))  # Orange image in BGR format
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        test_img_path = f.name
     cv2.imwrite(test_img_path, test_img)
     
     try:
