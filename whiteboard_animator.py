@@ -6453,6 +6453,14 @@ def main():
         except Exception as e:
             print(f"❌ Erreur lors de la lecture du fichier de configuration: {e}")
             return
+    
+    # Check if we should use the new whiteboard export with camera positioning
+    use_whiteboard_export = False
+    if has_layers_config and per_slide_config:
+        # Check if this is a single scene (not slides)
+        if 'layers' in per_slide_config and 'slides' not in per_slide_config:
+            use_whiteboard_export = True
+            print("🎨 Detected single scene with layers - using whiteboard video export")
 
     # --- Mode de génération vidéo ---
     # If config has layers, images are optional
@@ -6494,7 +6502,52 @@ def main():
     print("="*50)
 
     # Traitement unique ou multiple
-    if len(valid_images) == 1 and not has_layers_config:
+    if use_whiteboard_export:
+        # Use new whiteboard export with camera positioning
+        print("\n🎬 Using whiteboard video export with camera positioning...")
+        
+        # Get scene configuration
+        scene_width = per_slide_config.get('scene_width', 1920)
+        scene_height = per_slide_config.get('scene_height', 1080)
+        background = per_slide_config.get('background', '#FFFFFF')
+        
+        # Get camera config
+        camera_config = None
+        if 'sceneCameras' in per_slide_config:
+            for cam in per_slide_config['sceneCameras']:
+                if cam.get('isDefault', False):
+                    camera_config = cam
+                    break
+            if camera_config is None and per_slide_config['sceneCameras']:
+                camera_config = per_slide_config['sceneCameras'][0]
+        
+        # Set output path
+        output_path = os.path.join(save_path, f"whiteboard_scene_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4")
+        
+        # Call whiteboard export
+        result = export_scene_to_whiteboard_video(
+            per_slide_config,
+            output_path,
+            fps=args.frame_rate,
+            camera_config=camera_config,
+            scene_width=scene_width,
+            scene_height=scene_height,
+            background=background,
+            base_path=base_path,
+            crf=args.quality,
+            show_hand=True,
+            final_hold_duration=args.duration
+        )
+        
+        if result['success']:
+            print(f"\n✅ SUCCÈS! Vidéo whiteboard créée: {result['output_path']}")
+            print(f"   Durée: {result['duration']:.1f}s")
+            print(f"   Résolution: {result['resolution']}")
+            print(f"   Frames: {result['frames']}")
+        else:
+            print(f"\n❌ ÉCHEC: {result.get('error', 'Erreur inconnue')}")
+        
+    elif len(valid_images) == 1 and not has_layers_config:
         # Une seule image sans configuration de couches - utiliser l'ancienne méthode
         def final_callback_cli(result):
             """Fonction de rappel appelée à la fin de la génération."""

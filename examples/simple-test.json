@@ -1,0 +1,46 @@
+{
+  "scene_width": 1920,
+  "scene_height": 1080,
+  "background": "#FFFFFF",
+  "sceneCameras": [
+    {
+      "id": "main_camera",
+      "width": 1920,
+      "height": 1080,
+      "position": {"x": 0.5, "y": 0.5},
+      "isDefault": true
+    }
+  ],
+  "layers": [
+    {
+      "id": "title",
+      "type": "text",
+      "text_config": {
+        "text": "CLI Whiteboard Test",
+        "font": "Arial",
+        "size": 90,
+        "color": [30, 80, 200],
+        "style": "bold",
+        "align": "center"
+      },
+      "position": {"x": 960, "y": 400},
+      "z_index": 1,
+      "draw_duration": 2.0
+    },
+    {
+      "id": "subtitle",
+      "type": "text",
+      "text_config": {
+        "text": "Generated from CLI",
+        "font": "Arial",
+        "size": 50,
+        "color": [100, 100, 100],
+        "style": "italic",
+        "align": "center"
+      },
+      "position": {"x": 960, "y": 650},
+      "z_index": 2,
+      "draw_duration": 1.5
+    }
+  ]
+}
