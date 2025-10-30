@@ -1,0 +1,77 @@
+{
+  "canvas_width": 1920,
+  "canvas_height": 1080,
+  "slides": [
+    {
+      "index": 0,
+      "duration": 3,
+      "skip_rate": 10,
+      "layers": [
+        {
+          "type": "text",
+          "mode": "static",
+          "text_config": {
+            "text": "LEFT aligned at (100, 100)",
+            "font": "Arial",
+            "size": 40,
+            "style": "normal",
+            "color": [255, 0, 0],
+            "align": "left",
+            "position": {
+              "x": 100,
+              "y": 100
+            }
+          }
+        },
+        {
+          "type": "text",
+          "mode": "static",
+          "text_config": {
+            "text": "CENTER aligned at (100, 200)",
+            "font": "Arial",
+            "size": 40,
+            "style": "normal",
+            "color": [0, 255, 0],
+            "align": "center",
+            "position": {
+              "x": 100,
+              "y": 200
+            }
+          }
+        },
+        {
+          "type": "text",
+          "mode": "static",
+          "text_config": {
+            "text": "RIGHT aligned at (100, 300)",
+            "font": "Arial",
+            "size": 40,
+            "style": "normal",
+            "color": [0, 0, 255],
+            "align": "right",
+            "position": {
+              "x": 100,
+              "y": 300
+            }
+          }
+        },
+        {
+          "type": "text",
+          "mode": "static",
+          "text_config": {
+            "text": "All three texts should start at the same X position (100px from left)",
+            "font": "Arial",
+            "size": 30,
+            "style": "normal",
+            "color": [0, 0, 0],
+            "align": "left",
+            "position": {
+              "x": 100,
+              "y": 500
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -64,6 +64,30 @@ Whiteboard-It now supports **dynamic text layers** with handwriting animation! N
 | `align` | string | "left" | "left", "center", "right" |
 | `position` | dict | null | Position absolue `{x, y}` (optionnel) |
 
+### ⚠️ Important: Positionnement Absolu / Absolute Positioning
+
+**Depuis la correction du positionnement absolu:**
+
+Lorsque `position` est spécifié avec `{x, y}`, ces coordonnées représentent **toujours le coin supérieur gauche** de la zone de texte, **indépendamment de la valeur de `align`**.
+
+L'attribut `align` contrôle uniquement comment le texte est aligné *à l'intérieur* de sa zone de rendu, mais n'affecte pas le point d'ancrage de la position.
+
+When `position` is specified with `{x, y}`, these coordinates always represent the **top-left corner** of the text bounding box, regardless of the `align` value.
+
+The `align` attribute only controls how the text is aligned *within* its rendering area, but does not affect the position anchor point.
+
+**Exemple:**
+```json
+{
+  "text": "Mon texte",
+  "align": "center",
+  "position": {"x": 100, "y": 200}
+}
+```
+
+- Le texte démarrera à la position x=100 (pas centré sur x=100).
+- The text will start at position x=100 (not centered on x=100).
+
 ## Exemples / Examples
 
 ### 1. Texte centré avec style / Centered Styled Text
