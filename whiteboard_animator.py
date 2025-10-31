@@ -3097,13 +3097,15 @@ def draw_layered_whiteboard_animations(
                 
                 print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\"")
                 
-                # Calculate scaling factors for position adaptation
+                # Calculate scaling factors for position adaptation (early for text layers)
+                # Note: This is calculated again later for all layers, but text needs it here
+                # to scale positions before rendering
                 source_width = layer.get('source_width', variables.resize_wd)
                 source_height = layer.get('source_height', variables.resize_ht)
                 scale_x = variables.resize_wd / source_width
                 scale_y = variables.resize_ht / source_height
                 
-                # Render text with proper positioning like compose_layers_to_canvas
+                # Render text with proper positioning like compose_layers function
                 # but with position scaled to target resolution
                 text_config_for_render = text_config.copy()
                 anchor_point = layer.get('anchor_point', None)
@@ -3194,7 +3196,7 @@ def draw_layered_whiteboard_animations(
             position = layer.get('position', {'x': 0, 'y': 0})
             
             # For text/shape/arrow layers, positioning is handled internally during rendering
-            # so we don't apply an additional offset here (same as compose_layers_to_canvas)
+            # so we don't apply an additional offset here (same as compose_layers function)
             if layer_type in ['text', 'shape', 'arrow']:
                 x_offset = 0
                 y_offset = 0
