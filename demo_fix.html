@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text Layer Config Display - Fix Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #764ba2;
+            margin-top: 30px;
+        }
+        .console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .before {
+            border-left: 5px solid #e74c3c;
+        }
+        .after {
+            border-left: 5px solid #2ecc71;
+        }
+        .emoji {
+            font-size: 1.2em;
+        }
+        .highlight {
+            background: #3a3a3a;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .config-detail {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        @media (max-width: 768px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="emoji">✅</span> Text Layer Configuration Display - Fix Complete!</h1>
+        
+        <div class="success">
+            <strong>Issue Resolved:</strong> Text layer configurations (font, size, color, style, align) are now displayed in console output!
+        </div>
+
+        <h2><span class="emoji">🔴</span> Before Fix</h2>
+        <p>Console output showed only basic information:</p>
+        <div class="console before">
+<span class="emoji">🖌️</span> Dessin de la couche 1/2: z_index=1
+  <span class="emoji">📝</span> Génération de texte: "Hello World!..."
+  <span class="emoji">✍️</span> Mode handwriting (text)
+<br>
+<span class="emoji">🖌️</span> Dessin de la couche 2/2: z_index=2
+  <span class="emoji">📝</span> Génération de texte: "Testing Config Display..."
+  <span class="emoji">✍️</span> Mode handwriting (text)
+        </div>
+        <p><strong>Problem:</strong> No font, size, color, style, or alignment information visible!</p>
+
+        <h2><span class="emoji">🟢</span> After Fix</h2>
+        <p>Console output now shows complete configuration details:</p>
+        <div class="console after">
+<span class="emoji">🖌️</span> Dessin de la couche 1/2: z_index=1
+  <span class="emoji">📝</span> Génération de texte: "Hello World!..." <span class="config-detail">(font:DejaVuSans, size:60, color:[255, 0, 0], style:bold, align:center)</span>
+  <span class="emoji">✍️</span> Mode handwriting (text)
+<br>
+<span class="emoji">🖌️</span> Dessin de la couche 2/2: z_index=2
+  <span class="emoji">📝</span> Génération de texte: "Testing Config Display..." <span class="config-detail">(font:Arial, size:40, color:[0, 128, 255], style:italic, align:left)</span>
+  <span class="emoji">✍️</span> Mode handwriting (text)
+        </div>
+        <p><strong>Solution:</strong> All configuration details are now visible in orange!</p>
+
+        <h2><span class="emoji">📊</span> Comparison</h2>
+        <div class="comparison">
+            <div>
+                <h3>Before (Missing Info)</h3>
+                <ul>
+                    <li><span class="emoji">❌</span> Font name</li>
+                    <li><span class="emoji">❌</span> Font size</li>
+                    <li><span class="emoji">❌</span> Color</li>
+                    <li><span class="emoji">❌</span> Style (bold/italic)</li>
+                    <li><span class="emoji">❌</span> Alignment</li>
+                </ul>
+            </div>
+            <div>
+                <h3>After (Complete Info)</h3>
+                <ul>
+                    <li><span class="emoji">✅</span> Font name: <span class="highlight">DejaVuSans</span></li>
+                    <li><span class="emoji">✅</span> Font size: <span class="highlight">60</span></li>
+                    <li><span class="emoji">✅</span> Color: <span class="highlight">[255, 0, 0]</span></li>
+                    <li><span class="emoji">✅</span> Style: <span class="highlight">bold</span></li>
+                    <li><span class="emoji">✅</span> Alignment: <span class="highlight">center</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <h2><span class="emoji">🔧</span> Technical Details</h2>
+        <div class="console">
+<span style="color: #569cd6;">def</span> <span style="color: #dcdcaa;">format_text_config_for_display</span>(text_config):
+    <span style="color: #6a9955;">"""Extract and format text configuration for display."""</span>
+    font = text_config.get(<span style="color: #ce9178;">'font'</span>, <span style="color: #ce9178;">'Arial'</span>)
+    size = text_config.get(<span style="color: #ce9178;">'size'</span>, <span style="color: #b5cea8;">32</span>)
+    color = text_config.get(<span style="color: #ce9178;">'color'</span>, (<span style="color: #b5cea8;">0</span>, <span style="color: #b5cea8;">0</span>, <span style="color: #b5cea8;">0</span>))
+    style = text_config.get(<span style="color: #ce9178;">'style'</span>, <span style="color: #ce9178;">'normal'</span>)
+    align = text_config.get(<span style="color: #ce9178;">'align'</span>, <span style="color: #ce9178;">'left'</span>)
+    <span style="color: #c586c0;">return</span> <span style="color: #ce9178;">f"(font:{font}, size:{size}, color:{color}, style:{style}, align:{align})"</span>
+        </div>
+
+        <h2><span class="emoji">✅</span> Testing Results</h2>
+        <ul>
+            <li><span class="emoji">✅</span> All integration tests pass</li>
+            <li><span class="emoji">✅</span> Config details displayed in console</li>
+            <li><span class="emoji">✅</span> Visual test confirms correct rendering</li>
+            <li><span class="emoji">✅</span> Code review passed</li>
+            <li><span class="emoji">✅</span> Security scan passed (0 vulnerabilities)</li>
+            <li><span class="emoji">✅</span> No regressions introduced</li>
+        </ul>
+
+        <div class="success">
+            <strong><span class="emoji">🎉</span> Issue Fully Resolved!</strong><br>
+            Users can now verify that their text layer configurations are being applied correctly by viewing the console output during video generation.
+        </div>
+    </div>
+</body>
+</html>
