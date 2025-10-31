@@ -3096,37 +3096,45 @@ def draw_layered_whiteboard_animations(
                     layer['position'] = text_config['position']
                 
                 print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\"")
-                # For layer-based rendering, position text at (0,0) in the canvas
-                # The layer positioning system will handle final placement
+                
+                # Calculate scaling factors for position adaptation (early for text layers)
+                # Note: This is calculated again later for all layers, but text needs it here
+                # to scale positions before rendering
+                source_width = layer.get('source_width', variables.resize_wd)
+                source_height = layer.get('source_height', variables.resize_ht)
+                scale_x = variables.resize_wd / source_width
+                scale_y = variables.resize_ht / source_height
+                
+                # Render text with proper positioning like compose_layers function
+                # but with position scaled to target resolution
                 text_config_for_render = text_config.copy()
-                text_config_for_render['position'] = {'x': 0, 'y': 0}
+                anchor_point = layer.get('anchor_point', None)
+                layer_position = layer.get('position', None)
+                
+                if anchor_point == 'center' and layer_position:
+                    # For center anchor, scale the layer position and use it in text rendering
+                    scaled_position = {
+                        'x': layer_position.get('x', 0) * scale_x,
+                        'y': layer_position.get('y', 0) * scale_y
+                    }
+                    text_config_for_render['position'] = scaled_position
+                    text_config_for_render['anchor_point'] = 'center'
+                elif 'position' in text_config:
+                    # Use text_config.position (backward compatibility) but scale it
+                    original_pos = text_config['position']
+                    text_config_for_render['position'] = {
+                        'x': original_pos.get('x', 0) * scale_x,
+                        'y': original_pos.get('y', 0) * scale_y
+                    }
+                else:
+                    # No position specified, default to (0,0)
+                    text_config_for_render['position'] = {'x': 0, 'y': 0}
+                
                 layer_img_original = render_text_to_image(
                     text_config_for_render,
                     variables.resize_wd,
                     variables.resize_ht
                 )
-                # --- Ajustement automatique du placement du texte ---
-                # Détecter la première colonne non-blanche pour compenser la marge à gauche
-                
-                try:
-                    # Convertir en niveaux de gris si nécessaire
-                    if layer_img_original.ndim == 3:
-                        gray = np.mean(layer_img_original, axis=2)
-                    else:
-                        gray = layer_img_original
-                    # Chercher la première colonne avec un pixel non-blanc
-                    col_margin = 0
-                    for col in range(gray.shape[1]):
-                        if np.any(gray[:, col] < 250):
-                            col_margin = col
-                            break
-                    # Appliquer le décalage à la position x
-                    if col_margin > 0:
-                        print(f"    ➡️ Ajustement du placement du texte: marge gauche détectée de {col_margin} px")
-                        if 'position' in layer:
-                            layer['position']['x'] = layer.get('position', {'x': 0}).get('x', 0) - col_margin
-                except Exception as e:
-                    print(f"    ⚠️ Erreur lors de l'ajustement de la marge gauche du texte: {e}")
             elif layer_type == 'shape':
                 # Render shape to image
                 shape_config = layer.get('shape_config', {})
@@ -3174,19 +3182,29 @@ def draw_layered_whiteboard_animations(
             scale_y = variables.resize_ht / source_height
             
             # Appliquer l'échelle du layer + l'échelle de projection
+            # Only for image layers (text/shape/arrow already render at target size)
             layer_scale = layer.get('scale', 1.0)
             combined_scale_x = layer_scale * scale_x
             combined_scale_y = layer_scale * scale_y
             
-            if combined_scale_x != 1.0 or combined_scale_y != 1.0:
+            if layer_type not in ['text', 'shape', 'arrow'] and (combined_scale_x != 1.0 or combined_scale_y != 1.0):
                 new_width = int(layer_img_original.shape[1] * combined_scale_x)
                 new_height = int(layer_img_original.shape[0] * combined_scale_y)
                 layer_img_original = cv2.resize(layer_img_original, (new_width, new_height))
             
             # Obtenir position et opacité avec adaptation proportionnelle
             position = layer.get('position', {'x': 0, 'y': 0})
-            x_offset = position.get('x', 0) * scale_x
-            y_offset = position.get('y', 0) * scale_y
+            
+            # For text/shape/arrow layers, positioning is handled internally during rendering
+            # so we don't apply an additional offset here (same as compose_layers function)
+            if layer_type in ['text', 'shape', 'arrow']:
+                x_offset = 0
+                y_offset = 0
+            else:
+                # For image layers, apply the position offset
+                x_offset = position.get('x', 0) * scale_x
+                y_offset = position.get('y', 0) * scale_y
+            
             opacity = layer.get('opacity', 1.0)
             layer_skip_rate = layer.get('skip_rate', variables.object_skip_rate)
             
