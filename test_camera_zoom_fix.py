@@ -35,8 +35,8 @@ def test_camera_zoom_basic():
                 'type': 'shape',
                 'shape_config': {
                     'shape': 'rectangle',
-                    'color': (0, 0, 255),  # Blue in RGB -> Red in BGR
-                    'fill_color': (100, 100, 255),  # Light blue in RGB -> Light red in BGR
+                    'color': (0, 0, 255),  # Red in BGR (OpenCV format)
+                    'fill_color': (100, 100, 255),  # Light red in BGR
                     'stroke_width': 5,
                     'position': {'x': 960, 'y': 540},  # Center of 1920x1080 scene
                     'width': 200,
