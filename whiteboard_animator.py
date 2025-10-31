@@ -3096,37 +3096,28 @@ def draw_layered_whiteboard_animations(
                     layer['position'] = text_config['position']
                 
                 print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\"")
-                # For layer-based rendering, position text at (0,0) in the canvas
-                # The layer positioning system will handle final placement
+                # Render text with proper positioning like images
+                # Handle anchor_point and position the same way as compose_layers_to_canvas
                 text_config_for_render = text_config.copy()
-                text_config_for_render['position'] = {'x': 0, 'y': 0}
+                anchor_point = layer.get('anchor_point', None)
+                layer_position = layer.get('position', None)
+                
+                if anchor_point == 'center' and layer_position:
+                    # For center anchor, use the layer position directly in text rendering
+                    text_config_for_render['position'] = layer_position
+                    text_config_for_render['anchor_point'] = 'center'
+                elif 'position' in text_config:
+                    # Use text_config.position (backward compatibility)
+                    pass
+                else:
+                    # No position specified, default to (0,0)
+                    text_config_for_render['position'] = {'x': 0, 'y': 0}
+                
                 layer_img_original = render_text_to_image(
                     text_config_for_render,
                     variables.resize_wd,
                     variables.resize_ht
                 )
-                # --- Ajustement automatique du placement du texte ---
-                # Détecter la première colonne non-blanche pour compenser la marge à gauche
-                
-                try:
-                    # Convertir en niveaux de gris si nécessaire
-                    if layer_img_original.ndim == 3:
-                        gray = np.mean(layer_img_original, axis=2)
-                    else:
-                        gray = layer_img_original
-                    # Chercher la première colonne avec un pixel non-blanc
-                    col_margin = 0
-                    for col in range(gray.shape[1]):
-                        if np.any(gray[:, col] < 250):
-                            col_margin = col
-                            break
-                    # Appliquer le décalage à la position x
-                    if col_margin > 0:
-                        print(f"    ➡️ Ajustement du placement du texte: marge gauche détectée de {col_margin} px")
-                        if 'position' in layer:
-                            layer['position']['x'] = layer.get('position', {'x': 0}).get('x', 0) - col_margin
-                except Exception as e:
-                    print(f"    ⚠️ Erreur lors de l'ajustement de la marge gauche du texte: {e}")
             elif layer_type == 'shape':
                 # Render shape to image
                 shape_config = layer.get('shape_config', {})
@@ -3185,8 +3176,17 @@ def draw_layered_whiteboard_animations(
             
             # Obtenir position et opacité avec adaptation proportionnelle
             position = layer.get('position', {'x': 0, 'y': 0})
-            x_offset = position.get('x', 0) * scale_x
-            y_offset = position.get('y', 0) * scale_y
+            
+            # For text/shape/arrow layers, positioning is handled internally during rendering
+            # so we don't apply an additional offset here (same as compose_layers_to_canvas)
+            if layer_type in ['text', 'shape', 'arrow']:
+                x_offset = 0
+                y_offset = 0
+            else:
+                # For image layers, apply the position offset
+                x_offset = position.get('x', 0) * scale_x
+                y_offset = position.get('y', 0) * scale_y
+            
             opacity = layer.get('opacity', 1.0)
             layer_skip_rate = layer.get('skip_rate', variables.object_skip_rate)
             
