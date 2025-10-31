@@ -97,6 +97,7 @@ DEFAULT_OBJECT_SKIP_RATE = 8
 DEFAULT_BG_OBJECT_SKIP_RATE = 20
 DEFAULT_MAIN_IMG_DURATION = 3
 DEFAULT_CRF = 18  # Lower = better quality (0-51, 18 is visually lossless)
+MAX_TEXT_DISPLAY_LENGTH = 50  # Maximum characters to show in text layer display
 
 # --- Classes et Fonctions ---
 
@@ -3113,7 +3114,8 @@ def draw_layered_whiteboard_animations(
                 
                 # Display text config details for verification
                 config_display = format_text_config_for_display(text_config)
-                print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\" {config_display}")
+                text_preview = text_config.get('text', '')[:MAX_TEXT_DISPLAY_LENGTH]
+                print(f"    📝 Génération de texte: \"{text_preview}...\" {config_display}")
                 
                 # Calculate scaling factors for position adaptation (early for text layers)
                 # Note: This is calculated again later for all layers, but text needs it here
@@ -4479,7 +4481,7 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
                 # Display text config details for verification
                 if verbose:
                     config_display = format_text_config_for_display(text_config)
-                    text_content = text_config.get('text', '')[:50]
+                    text_content = text_config.get('text', '')[:MAX_TEXT_DISPLAY_LENGTH]
                     print(f"    📝 Rendering text layer: \"{text_content}...\" {config_display}")
                 # Render text to full scene size, we'll crop later
                 layer_img = render_text_to_image(text_config, scene_width, scene_height)
