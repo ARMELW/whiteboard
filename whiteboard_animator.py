@@ -151,6 +151,22 @@ def load_image_from_url_or_path(image_source):
         
         return img
 
+def format_text_config_for_display(text_config):
+    """Extract and format text configuration for display in console output.
+    
+    Args:
+        text_config: Dictionary with text configuration
+        
+    Returns:
+        String with formatted config details: (font:X, size:Y, color:Z, style:A, align:B)
+    """
+    font = text_config.get('font', 'Arial')
+    size = text_config.get('size', 32)
+    color = text_config.get('color', (0, 0, 0))
+    style = text_config.get('style', 'normal')
+    align = text_config.get('align', 'left')
+    return f"(font:{font}, size:{size}, color:{color}, style:{style}, align:{align})"
+
 def render_text_to_image(text_config, target_width, target_height):
     """Render text to an image using PIL/Pillow with advanced multilingual and effect support.
     
@@ -3096,13 +3112,8 @@ def draw_layered_whiteboard_animations(
                     layer['position'] = text_config['position']
                 
                 # Display text config details for verification
-                font = text_config.get('font', 'Arial')
-                size = text_config.get('size', 32)
-                color = text_config.get('color', (0, 0, 0))
-                style = text_config.get('style', 'normal')
-                align = text_config.get('align', 'left')
-                print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\" " +
-                      f"(font:{font}, size:{size}, color:{color}, style:{style}, align:{align})")
+                config_display = format_text_config_for_display(text_config)
+                print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\" {config_display}")
                 
                 # Calculate scaling factors for position adaptation (early for text layers)
                 # Note: This is calculated again later for all layers, but text needs it here
@@ -4125,13 +4136,8 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
                     layer['position'] = text_config['position']
                 
                 # Display text config details for verification
-                font = text_config.get('font', 'Arial')
-                size = text_config.get('size', 32)
-                color = text_config.get('color', (0, 0, 0))
-                style = text_config.get('style', 'normal')
-                align = text_config.get('align', 'left')
-                print(f"    📝 Génération de texte pour composition " +
-                      f"(font:{font}, size:{size}, color:{color}, style:{style}, align:{align})")
+                config_display = format_text_config_for_display(text_config)
+                print(f"    📝 Génération de texte pour composition {config_display}")
                 # For layer-based rendering with anchor_point, use layer position
                 # Otherwise, use text_config.position if available, else position at (0,0)
                 text_config_for_render = text_config.copy()
@@ -4472,14 +4478,9 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
                     continue
                 # Display text config details for verification
                 if verbose:
-                    font = text_config.get('font', 'Arial')
-                    size = text_config.get('size', 32)
-                    color = text_config.get('color', (0, 0, 0))
-                    style = text_config.get('style', 'normal')
-                    align = text_config.get('align', 'left')
+                    config_display = format_text_config_for_display(text_config)
                     text_content = text_config.get('text', '')[:50]
-                    print(f"    📝 Rendering text layer: \"{text_content}...\" " +
-                          f"(font:{font}, size:{size}, color:{color}, style:{style}, align:{align})")
+                    print(f"    📝 Rendering text layer: \"{text_content}...\" {config_display}")
                 # Render text to full scene size, we'll crop later
                 layer_img = render_text_to_image(text_config, scene_width, scene_height)
                 
