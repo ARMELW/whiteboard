@@ -3096,19 +3096,34 @@ def draw_layered_whiteboard_animations(
                     layer['position'] = text_config['position']
                 
                 print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\"")
-                # Render text with proper positioning like images
-                # Handle anchor_point and position the same way as compose_layers_to_canvas
+                
+                # Calculate scaling factors for position adaptation
+                source_width = layer.get('source_width', variables.resize_wd)
+                source_height = layer.get('source_height', variables.resize_ht)
+                scale_x = variables.resize_wd / source_width
+                scale_y = variables.resize_ht / source_height
+                
+                # Render text with proper positioning like compose_layers_to_canvas
+                # but with position scaled to target resolution
                 text_config_for_render = text_config.copy()
                 anchor_point = layer.get('anchor_point', None)
                 layer_position = layer.get('position', None)
                 
                 if anchor_point == 'center' and layer_position:
-                    # For center anchor, use the layer position directly in text rendering
-                    text_config_for_render['position'] = layer_position
+                    # For center anchor, scale the layer position and use it in text rendering
+                    scaled_position = {
+                        'x': layer_position.get('x', 0) * scale_x,
+                        'y': layer_position.get('y', 0) * scale_y
+                    }
+                    text_config_for_render['position'] = scaled_position
                     text_config_for_render['anchor_point'] = 'center'
                 elif 'position' in text_config:
-                    # Use text_config.position (backward compatibility)
-                    pass
+                    # Use text_config.position (backward compatibility) but scale it
+                    original_pos = text_config['position']
+                    text_config_for_render['position'] = {
+                        'x': original_pos.get('x', 0) * scale_x,
+                        'y': original_pos.get('y', 0) * scale_y
+                    }
                 else:
                     # No position specified, default to (0,0)
                     text_config_for_render['position'] = {'x': 0, 'y': 0}
@@ -3165,11 +3180,12 @@ def draw_layered_whiteboard_animations(
             scale_y = variables.resize_ht / source_height
             
             # Appliquer l'échelle du layer + l'échelle de projection
+            # Only for image layers (text/shape/arrow already render at target size)
             layer_scale = layer.get('scale', 1.0)
             combined_scale_x = layer_scale * scale_x
             combined_scale_y = layer_scale * scale_y
             
-            if combined_scale_x != 1.0 or combined_scale_y != 1.0:
+            if layer_type not in ['text', 'shape', 'arrow'] and (combined_scale_x != 1.0 or combined_scale_y != 1.0):
                 new_width = int(layer_img_original.shape[1] * combined_scale_x)
                 new_height = int(layer_img_original.shape[0] * combined_scale_y)
                 layer_img_original = cv2.resize(layer_img_original, (new_width, new_height))
