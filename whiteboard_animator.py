@@ -4295,12 +4295,24 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
         camera_config = {
             'width': 800,
             'height': 450,
-            'position': {'x': 0.5, 'y': 0.5}
+            'position': {'x': 0.5, 'y': 0.5},
+            'zoom': 1.0
         }
     
-    # Use camera dimensions for canvas
+    # Use camera dimensions for canvas (output size)
     canvas_width = int(camera_config.get('width', 800))
     canvas_height = int(camera_config.get('height', 450))
+    
+    # Get zoom factor
+    zoom = camera_config.get('zoom', 1.0)
+    if zoom <= 0:
+        zoom = 1.0
+    
+    # Calculate viewport size in scene coordinates based on zoom
+    # When zoom > 1.0, viewport is smaller (zooming in)
+    # When zoom < 1.0, viewport is larger (zooming out)
+    viewport_width = canvas_width / zoom
+    viewport_height = canvas_height / zoom
     
     # Parse background color
     if isinstance(background, str):
@@ -4321,10 +4333,14 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
     
     # Calculate camera viewport in scene coordinates
     camera_pos = camera_config.get('position', {'x': 0.5, 'y': 0.5})
-    camera_x = (camera_pos['x'] * scene_width) - (canvas_width / 2)
-    camera_y = (camera_pos['y'] * scene_height) - (canvas_height / 2)
+    # Camera position is the center of the viewport in scene coordinates
+    camera_center_x = camera_pos['x'] * scene_width
+    camera_center_y = camera_pos['y'] * scene_height
+    # Calculate top-left corner of viewport
+    camera_x = camera_center_x - (viewport_width / 2)
+    camera_y = camera_center_y - (viewport_height / 2)
     
-    if verbose: print(f"  📷 Camera viewport: {canvas_width}x{canvas_height} at scene position ({camera_x:.1f}, {camera_y:.1f})")
+    if verbose: print(f"  📷 Camera: output={canvas_width}x{canvas_height}, zoom={zoom:.2f}, viewport={viewport_width:.1f}x{viewport_height:.1f} at scene position ({camera_x:.1f}, {camera_y:.1f})")
     
     # Render scene background image if exists
     background_image = scene_config.get('backgroundImage', None)
@@ -4340,11 +4356,12 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
             
             if bg_img is not None:
                 # Calculate source rectangle (portion of background to show)
+                # Use viewport dimensions (accounting for zoom) not canvas dimensions
                 bg_h, bg_w = bg_img.shape[:2]
                 source_x = int((camera_x / scene_width) * bg_w)
                 source_y = int((camera_y / scene_height) * bg_h)
-                source_width = int((canvas_width / scene_width) * bg_w)
-                source_height = int((canvas_height / scene_height) * bg_h)
+                source_width = int((viewport_width / scene_width) * bg_w)
+                source_height = int((viewport_height / scene_height) * bg_h)
                 
                 # Clamp to image bounds
                 source_x = max(0, min(source_x, bg_w - 1))
@@ -4480,9 +4497,23 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
                 layer_x = layer_x - layer_w // 2
                 layer_y = layer_y - layer_h // 2
             
-            # Calculate layer position relative to camera viewport
+            # Calculate layer position relative to camera viewport (in scene coordinates)
             relative_x = layer_x - camera_x
             relative_y = layer_y - camera_y
+            
+            # Apply zoom scaling to convert from scene coordinates to canvas coordinates
+            # When zoom > 1, scene content appears larger in canvas (zoomed in)
+            # When zoom < 1, scene content appears smaller in canvas (zoomed out)
+            relative_x = relative_x * zoom
+            relative_y = relative_y * zoom
+            
+            # Scale layer dimensions for zoom
+            if zoom != 1.0 and layer_img is not None:
+                scaled_w = int(layer_w * zoom)
+                scaled_h = int(layer_h * zoom)
+                if scaled_w > 0 and scaled_h > 0:
+                    layer_img = cv2.resize(layer_img, (scaled_w, scaled_h), interpolation=cv2.INTER_LINEAR)
+                    layer_w, layer_h = scaled_w, scaled_h
             
             # Get rotation and flip
             rotation = layer.get('rotation', 0)
@@ -4563,10 +4594,11 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
             # Log layer
             z_idx = layer.get('z_index', 0)
             layer_id = layer.get('id', 'unknown')
+            layer_scale = layer.get('scale', 1.0)
             if verbose: print(f"    ✓ Layer applied: {layer_type} (id:{layer_id}, z:{z_idx}, " +
                   f"scene_pos:({layer_x:.1f},{layer_y:.1f}), " +
-                  f"viewport_pos:({relative_x:.1f},{relative_y:.1f}), " +
-                  f"scale:{scale:.2f}, opacity:{opacity:.2f})")
+                  f"canvas_pos:({relative_x:.1f},{relative_y:.1f}), " +
+                  f"scale:{layer_scale:.2f}, zoom:{zoom:.2f}, opacity:{opacity:.2f})")
             
         except Exception as e:
             if verbose: print(f"    ❌ Error rendering layer: {e}")
