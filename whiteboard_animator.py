@@ -15,6 +15,7 @@ from fontTools.pens.recordingPen import RecordingPen
 import urllib.request
 import urllib.error
 import tempfile
+import numpy as np
 
 # Import performance optimizer module
 try:
@@ -3104,6 +3105,28 @@ def draw_layered_whiteboard_animations(
                     variables.resize_wd,
                     variables.resize_ht
                 )
+                # --- Ajustement automatique du placement du texte ---
+                # Détecter la première colonne non-blanche pour compenser la marge à gauche
+                
+                try:
+                    # Convertir en niveaux de gris si nécessaire
+                    if layer_img_original.ndim == 3:
+                        gray = np.mean(layer_img_original, axis=2)
+                    else:
+                        gray = layer_img_original
+                    # Chercher la première colonne avec un pixel non-blanc
+                    col_margin = 0
+                    for col in range(gray.shape[1]):
+                        if np.any(gray[:, col] < 250):
+                            col_margin = col
+                            break
+                    # Appliquer le décalage à la position x
+                    if col_margin > 0:
+                        print(f"    ➡️ Ajustement du placement du texte: marge gauche détectée de {col_margin} px")
+                        if 'position' in layer:
+                            layer['position']['x'] = layer.get('position', {'x': 0}).get('x', 0) - col_margin
+                except Exception as e:
+                    print(f"    ⚠️ Erreur lors de l'ajustement de la marge gauche du texte: {e}")
             elif layer_type == 'shape':
                 # Render shape to image
                 shape_config = layer.get('shape_config', {})
@@ -3143,30 +3166,43 @@ def draw_layered_whiteboard_animations(
                 if layer_img_original is None:
                     continue
             
-            # Appliquer l'échelle
-            scale = layer.get('scale', 1.0)
-            if scale != 1.0:
-                new_width = int(layer_img_original.shape[1] * scale)
-                new_height = int(layer_img_original.shape[0] * scale)
+            # Calculer les facteurs d'échelle pour la projection
+            # Si les layers sont définis pour une résolution source différente
+            source_width = layer.get('source_width', variables.resize_wd)
+            source_height = layer.get('source_height', variables.resize_ht)
+            scale_x = variables.resize_wd / source_width
+            scale_y = variables.resize_ht / source_height
+            
+            # Appliquer l'échelle du layer + l'échelle de projection
+            layer_scale = layer.get('scale', 1.0)
+            combined_scale_x = layer_scale * scale_x
+            combined_scale_y = layer_scale * scale_y
+            
+            if combined_scale_x != 1.0 or combined_scale_y != 1.0:
+                new_width = int(layer_img_original.shape[1] * combined_scale_x)
+                new_height = int(layer_img_original.shape[0] * combined_scale_y)
                 layer_img_original = cv2.resize(layer_img_original, (new_width, new_height))
             
-            # Obtenir position et opacité
+            # Obtenir position et opacité avec adaptation proportionnelle
             position = layer.get('position', {'x': 0, 'y': 0})
-            x_offset = int(position.get('x', 0))  # Convertir en entier
-            y_offset = int(position.get('y', 0))  # Convertir en entier
+            x_offset = position.get('x', 0) * scale_x
+            y_offset = position.get('y', 0) * scale_y
             opacity = layer.get('opacity', 1.0)
             layer_skip_rate = layer.get('skip_rate', variables.object_skip_rate)
             
-            # Créer une image complète avec la couche positionnée
+            # Placement pixel-perfect : arrondir coordonnées et dimensions
             layer_full = base_canvas.copy()
-            layer_h, layer_w = layer_img_original.shape[:2]
-            
+            layer_h = int(round(layer_img_original.shape[0]))
+            layer_w = int(round(layer_img_original.shape[1]))
+            x_offset = int(round(x_offset))
+            y_offset = int(round(y_offset))
+        
             # Calculer les limites pour copier la couche
             x1 = max(0, x_offset)
             y1 = max(0, y_offset)
             x2 = min(variables.resize_wd, x_offset + layer_w)
             y2 = min(variables.resize_ht, y_offset + layer_h)
-            
+
             lx1 = max(0, -x_offset)
             ly1 = max(0, -y_offset)
             lx2 = lx1 + (x2 - x1)
@@ -3639,9 +3675,13 @@ def draw_layered_whiteboard_animations(
                     "image_path": layer.get('image_path', ''),
                     "position": position,
                     "z_index": layer.get('z_index', 0),
-                    "scale": scale,
+                    "scale": layer_scale,
                     "opacity": opacity,
-                    "skip_rate": layer_skip_rate
+                    "skip_rate": layer_skip_rate,
+                    "source_width": source_width,
+                    "source_height": source_height,
+                    "scale_x": scale_x,
+                    "scale_y": scale_y
                 })
             
         except Exception as e:
@@ -3715,8 +3755,7 @@ def draw_layered_whiteboard_animations(
     
     # Fermer l'objet vidéo
     variables.video_object.release()
-
-
+    
 def export_animation_json(variables, json_path):
     """Exporte les données d'animation au format JSON."""
     if not variables.animation_data:

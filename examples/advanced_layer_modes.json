@@ -2,14 +2,24 @@
   "slides": [
     {
       "index": 0,
-      "duration": 12,
+      "duration": 2,
+      "skip_rate": 10,
       "layers": [
         {
-          "image_path": "doodle/1.jpg",
-          "position": {"x": 0, "y": 0},
-          "z_index": 1,
-          "skip_rate": 10,
-          "mode": "draw"
+          "type": "image",
+          "z_index": 0,
+          "mode": "draw",
+          "width": 412.88132432363324,
+          "height": 601.6086691392723,
+          "scale": 0.2683835961542078,
+          "source_width": 800,
+          "source_height": 450,
+          "opacity": 1,
+          "position": {
+            "x": 296.3826030878506,
+            "y": 96.32972119196995
+          },
+          "image_path": "http://localhost:9000/assets/8d9cd7af-da74-4943-a563-ab9106369f18.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=admin%2F20251030%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251030T151054Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=b9861c1f8c5d0ee891918f6bb888446ceb69f419422a4edd3b3ba7baf7c31a42"
         }
       ]
     }

@@ -8,15 +8,8 @@
       "skip_rate": 10,
       "layers": [
         {
-          "type": "text",
-          "mode": "static",
-          "text_config": {
-            "text": "Person Image\n(would be on left)",
-            "font": "Arial",
-            "size": 24,
-            "color": [100, 100, 100],
-            "align": "center"
-          },
+          "mode": "draw",
+          "image_path": "doodle/4.png",
           "position": {
             "x": 100,
             "y": 300
