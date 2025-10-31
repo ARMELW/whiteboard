@@ -3095,7 +3095,14 @@ def draw_layered_whiteboard_animations(
                 if 'position' not in layer and 'position' in text_config:
                     layer['position'] = text_config['position']
                 
-                print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\"")
+                # Display text config details for verification
+                font = text_config.get('font', 'Arial')
+                size = text_config.get('size', 32)
+                color = text_config.get('color', (0, 0, 0))
+                style = text_config.get('style', 'normal')
+                align = text_config.get('align', 'left')
+                print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\" " +
+                      f"(font:{font}, size:{size}, color:{color}, style:{style}, align:{align})")
                 
                 # Calculate scaling factors for position adaptation (early for text layers)
                 # Note: This is calculated again later for all layers, but text needs it here
@@ -4117,7 +4124,14 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
                 if 'position' not in layer and 'position' in text_config:
                     layer['position'] = text_config['position']
                 
-                print(f"    📝 Génération de texte pour composition")
+                # Display text config details for verification
+                font = text_config.get('font', 'Arial')
+                size = text_config.get('size', 32)
+                color = text_config.get('color', (0, 0, 0))
+                style = text_config.get('style', 'normal')
+                align = text_config.get('align', 'left')
+                print(f"    📝 Génération de texte pour composition " +
+                      f"(font:{font}, size:{size}, color:{color}, style:{style}, align:{align})")
                 # For layer-based rendering with anchor_point, use layer position
                 # Otherwise, use text_config.position if available, else position at (0,0)
                 text_config_for_render = text_config.copy()
@@ -4456,6 +4470,16 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
                 text_config = layer.get('text_config', {})
                 if not text_config or 'text' not in text_config:
                     continue
+                # Display text config details for verification
+                if verbose:
+                    font = text_config.get('font', 'Arial')
+                    size = text_config.get('size', 32)
+                    color = text_config.get('color', (0, 0, 0))
+                    style = text_config.get('style', 'normal')
+                    align = text_config.get('align', 'left')
+                    text_content = text_config.get('text', '')[:50]
+                    print(f"    📝 Rendering text layer: \"{text_content}...\" " +
+                          f"(font:{font}, size:{size}, color:{color}, style:{style}, align:{align})")
                 # Render text to full scene size, we'll crop later
                 layer_img = render_text_to_image(text_config, scene_width, scene_height)
                 
