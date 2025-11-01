@@ -183,13 +183,15 @@ Le mode flood fill fonctionne en :
 
 ### Algorithme Coloriage
 
-Le mode coloriage fonctionne en :
+Le mode coloriage fonctionne en **pattern diagonal zigzag** :
 
 1. **Détection** : Identifie tous les pixels de contenu de l'image
-2. **Organisation** : Trie les pixels de haut en bas, gauche à droite
-3. **Bandes** : Groupe les pixels en bandes horizontales (5 pixels de hauteur)
-4. **Coloriage** : Colorie chaque bande progressivement, segment par segment
-5. **Animation** : La main suit le mouvement de coloriage de gauche à droite
+2. **Organisation diagonale** : Groupe les pixels en bandes diagonales où y+x est constant
+3. **Zigzag** : Alterne la direction de coloriage entre bandes (haut-bas, puis bas-haut)
+4. **Coloriage** : Colorie chaque bande diagonale progressivement, segment par segment
+5. **Animation** : La main suit le mouvement de coloriage en diagonale, créant un effet zigzag naturel
+
+Ce pattern diagonal crée un effet de coloriage plus naturel et dynamique, comme si on coloriait en suivant des lignes diagonales.
 
 ## Exemples de configuration
 
