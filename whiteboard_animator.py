@@ -3988,6 +3988,8 @@ def draw_layered_whiteboard_animations(
                         colors = extract_svg_colors(svg_path)
                         
                         # Apply position offset if specified in layer
+                        # This allows positioning SVG shapes at specific coordinates on the canvas
+                        # without modifying the original SVG file
                         layer_position = layer.get('position', None)
                         if layer_position:
                             offset_x = layer_position.get('x', 0)
@@ -4018,7 +4020,9 @@ def draw_layered_whiteboard_animations(
                                 print(f"    🎨 Couleur de contour: {colors['stroke']}")
                         
                         # Store the shape_config back into the layer so it's available later
-                        # for path_follow animation
+                        # for path_follow animation. This is necessary because the automatic
+                        # polygon-to-path_follow conversion (line 4371) retrieves shape_config
+                        # from the layer, and needs the extracted polygon points to work correctly.
                         layer['shape_config'] = shape_config
                     
                     except ImportError:

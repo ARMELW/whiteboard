@@ -165,6 +165,8 @@ def extract_from_svg(svg_path, sampling_rate=5, reverse=False):
             all_points.extend(points)
     
     # Reverse the order of points if requested
+    # This changes the drawing direction from start-to-end to end-to-start
+    # Useful for: drawing arrows backwards, reversing signature direction, etc.
     if reverse:
         all_points = all_points[::-1]
     
