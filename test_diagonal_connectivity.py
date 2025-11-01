@@ -9,7 +9,6 @@ import os
 import cv2
 import numpy as np
 import json
-import tempfile
 
 def create_diagonal_test_image():
     """
@@ -216,7 +215,9 @@ def test_flood_fill_with_diagonal_image():
             
             # With 8-connectivity, we expect fewer regions than with 4-connectivity
             # For diagonal patterns, 8-connectivity should significantly reduce region count
-            if num_regions < 20:  # Reasonable threshold for our test image
+            # Test image has 3 distinct diagonal patterns, so expect <= 10 regions
+            MAX_EXPECTED_REGIONS = 10
+            if num_regions <= MAX_EXPECTED_REGIONS:
                 print(f"   Region count is reasonable for 8-connectivity")
                 return True
             else:

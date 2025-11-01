@@ -3147,8 +3147,8 @@ def draw_coloriage(
     
     print(f"  🎨 Coloriage mode: {len(content_pixels[0])} pixels à colorier")
     
-    # Create a list of pixel coordinates sorted for diagonal zigzag coloring pattern
-    # Pixels are organized by diagonal bands (sum of y+x coordinates)
+    # Create a list of pixel coordinates organized by diagonal bands where each band
+    # contains pixels with the same y+x sum, then sorted in zigzag pattern
     pixel_coords = list(zip(content_pixels[0], content_pixels[1]))
     
     # Group pixels by diagonal bands

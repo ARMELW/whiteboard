@@ -140,6 +140,6 @@ Expected output:
 
 ## References
 
-- Issue: [Mode Coloriage – Propagation diagonale](link-to-issue)
+- Issue: Mode Coloriage – Propagation diagonale
 - OpenCV Documentation: [connectedComponents](https://docs.opencv.org/4.x/d3/dc0/group__imgproc__shape.html#gaedef8c7340499ca391d459122e51bef5)
 - Connected Component Labeling: [Wikipedia](https://en.wikipedia.org/wiki/Connected-component_labeling)

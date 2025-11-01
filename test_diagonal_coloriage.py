@@ -11,6 +11,14 @@ import numpy as np
 import json
 import subprocess
 
+# Optional matplotlib import for visualization
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib import patches
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
+
 
 def create_grid_test_image():
     """Create a simple grid pattern to visualize diagonal coloring."""
@@ -180,9 +188,11 @@ def visualize_diagonal_pattern():
     """Create a visualization showing the diagonal zigzag pattern."""
     print("\n=== Creating Diagonal Pattern Visualization ===\n")
     
+    if not MATPLOTLIB_AVAILABLE:
+        print("⚠️  matplotlib not available, skipping visualization")
+        return False
+    
     try:
-        import matplotlib.pyplot as plt
-        from matplotlib import patches
         
         # Create a simple grid to show the pattern
         grid_size = 8
