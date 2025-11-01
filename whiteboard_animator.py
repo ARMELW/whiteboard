@@ -163,6 +163,45 @@ def load_image_from_url_or_path(image_source):
         
         return img
 
+def resolve_font_path(font_name, style='normal'):
+    """Resolve font family name to actual font file path using fontconfig.
+    
+    Args:
+        font_name: Font family name (e.g., 'Arial', 'Gargi', 'DejaVu Sans')
+        style: Font style ('normal', 'bold', 'italic', 'bold italic')
+        
+    Returns:
+        Path to font file if found, None otherwise
+    """
+    try:
+        # Build fc-match pattern with style
+        pattern = font_name
+        if 'bold' in style.lower() and 'italic' in style.lower():
+            pattern = f"{font_name}:style=Bold Italic"
+        elif 'bold' in style.lower():
+            pattern = f"{font_name}:style=Bold"
+        elif 'italic' in style.lower():
+            pattern = f"{font_name}:style=Italic"
+        
+        # Use fc-match to find the font file
+        result = subprocess.run(
+            ['fc-match', '-f', '%{file}', pattern],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        
+        if result.returncode == 0 and result.stdout.strip():
+            font_path = result.stdout.strip()
+            # Verify the file exists
+            if os.path.exists(font_path):
+                return font_path
+    except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError, OSError):
+        # fc-match not available or failed, continue with fallback mechanism
+        pass
+    
+    return None
+
 def format_text_config_for_display(text_config):
     """Extrait et formate la configuration du texte pour l'affichage dans la console.
     
@@ -211,9 +250,14 @@ def render_text_to_image(text_config, target_width, target_height):
         
         while font_size > 8:
             temp_font = None
+            # First try to resolve font using fontconfig
+            font_path = resolve_font_path(font_name, 'normal')
             try:
                 # Tente de charger la police avec la taille actuelle
-                temp_font = ImageFont.truetype(font_name, font_size)
+                if font_path:
+                    temp_font = ImageFont.truetype(font_path, font_size)
+                else:
+                    temp_font = ImageFont.truetype(font_name, font_size)
             except:
                 # Utilise la police par défaut si la police spécifiée ne peut être chargée
                 temp_font = ImageFont.load_default(size=font_size) # Petite correction: load_default peut prendre une taille
@@ -298,8 +342,21 @@ def render_text_to_image(text_config, target_width, target_height):
     for font_name_try, font_style in fonts_to_try:
         if font is not None:
             break
+        
+        current_style = style if font_style == 'normal' else font_style
+        
+        # First, try to resolve font using fontconfig (fc-match)
+        font_path = resolve_font_path(font_name_try, current_style)
+        if font_path:
+            try:
+                font = ImageFont.truetype(font_path, font_size)
+                break
+            except (OSError, IOError):
+                # Font file not readable or invalid, try fallback
+                pass
+        
+        # Fallback to direct font name attempts
         try:
-            current_style = style if font_style == 'normal' else font_style
             if 'bold' in current_style:
                 variants = [f"{font_name_try} Bold", f"{font_name_try}-Bold", f"{font_name_try}bd"]
                 if 'italic' in current_style:
@@ -325,9 +382,9 @@ def render_text_to_image(text_config, target_width, target_height):
                 f"/usr/share/fonts/truetype/liberation/Liberation{font_name_try}-Regular.ttf",
                 f"C:\\Windows\\Fonts\\{font_name_try}.ttf"
             ]
-            for font_path in common_fonts:
+            for font_path_try in common_fonts:
                 try:
-                    font = ImageFont.truetype(font_path, font_size)
+                    font = ImageFont.truetype(font_path_try, font_size)
                     break
                 except:
                     pass
@@ -479,8 +536,13 @@ def render_shape_to_image(shape_config, target_width, target_height):
     if explicit_size is not None:
         font_size = int(explicit_size)
         # Optionally warn if explicit size overflows layer
+        # First try to resolve font using fontconfig
+        font_path = resolve_font_path(font_name, 'normal')
         try:
-            temp_font = ImageFont.truetype(font_name, font_size)
+            if font_path:
+                temp_font = ImageFont.truetype(font_path, font_size)
+            else:
+                temp_font = ImageFont.truetype(font_name, font_size)
         except:
             temp_font = ImageFont.load_default()
         try:
@@ -513,8 +575,13 @@ def render_shape_to_image(shape_config, target_width, target_height):
         print('font size', font_size)
         while font_size > 8:
             temp_font = None
+            # First try to resolve font using fontconfig
+            font_path = resolve_font_path(font_name, 'normal')
             try:
-                temp_font = ImageFont.truetype(font_name, font_size)
+                if font_path:
+                    temp_font = ImageFont.truetype(font_path, font_size)
+                else:
+                    temp_font = ImageFont.truetype(font_name, font_size)
             except:
                 temp_font = ImageFont.load_default()
             try:
@@ -928,27 +995,31 @@ def draw_svg_path_handwriting(
         font_name = text_config.get('font', 'Arial')
         font_size = text_config.get('size', 32)
         
-        # Try to find font file
-        font_path = None
-        try:
-            # Try to load font to get path
-            temp_font = ImageFont.truetype(font_name, font_size)
-            # Get font path from PIL font
-            if hasattr(temp_font, 'path'):
-                font_path = temp_font.path
-            else:
-                # Try common font locations
-                common_paths = [
-                    f"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                    f"/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-                    f"C:\\Windows\\Fonts\\arial.ttf",
-                ]
-                for path in common_paths:
-                    if os.path.exists(path):
-                        font_path = path
-                        break
-        except:
-            pass
+        # Try to find font file using fontconfig first
+        font_path = resolve_font_path(font_name, text_config.get('style', 'normal'))
+        
+        # If fontconfig didn't work, try to load font to get path
+        if not font_path:
+            try:
+                temp_font = ImageFont.truetype(font_name, font_size)
+                # Get font path from PIL font
+                if hasattr(temp_font, 'path'):
+                    font_path = temp_font.path
+            except:
+                pass
+        
+        # Fallback to common font locations
+        if not font_path:
+            # Try common font locations
+            common_paths = [
+                f"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                f"/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                f"C:\\Windows\\Fonts\\arial.ttf",
+            ]
+            for path in common_paths:
+                if os.path.exists(path):
+                    font_path = path
+                    break
         
         # Try to extract character paths
         if font_path and os.path.exists(font_path):
