@@ -4015,7 +4015,8 @@ def draw_layered_whiteboard_animations(
                         print(f"    ⚠️ Erreur lors de l'extraction SVG: {e}")
                         continue
                 
-                elif not shape_config or 'shape' not in shape_config:
+                # If no SVG extraction, check that shape_config is valid
+                if not shape_config or 'shape' not in shape_config:
                     print(f"    ⚠️ Configuration de forme manquante ou invalide")
                     continue
                 
