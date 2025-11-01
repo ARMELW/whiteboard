@@ -250,10 +250,24 @@ def load_image_from_url_or_path(image_source):
                 print(f"    ⚠️ Erreur lors de la conversion SVG: {e}")
                 return None
         
-        img = cv2.imread(image_source)
+        # Load image with alpha channel if present
+        img = cv2.imread(image_source, cv2.IMREAD_UNCHANGED)
         if img is None:
             print(f"    ⚠️ Impossible de lire l'image: {image_source}")
             return None
+        
+        # Handle transparency (alpha channel) - convert to white background
+        if img.shape[2] == 4:  # Has alpha channel
+            # Split channels
+            bgr = img[:, :, :3]
+            alpha = img[:, :, 3] / 255.0  # Normalize alpha to 0-1
+            
+            # Create white background
+            white_bg = np.ones_like(bgr) * 255
+            
+            # Alpha blend: result = foreground * alpha + background * (1 - alpha)
+            alpha_3ch = np.stack([alpha] * 3, axis=2)
+            img = (bgr * alpha_3ch + white_bg * (1 - alpha_3ch)).astype(np.uint8)
         
         return img
 
@@ -3991,6 +4005,9 @@ def draw_layered_whiteboard_animations(
                 layer_img_original = load_image_from_url_or_path(image_path)
                 if layer_img_original is None:
                     continue
+                
+                # Store original dimensions for path_follow coordinate transformation
+                orig_layer_img_h, orig_layer_img_w = layer_img_original.shape[:2]
             
             # Calculer les facteurs d'échelle pour la projection
             # Si les layers sont définis pour une résolution source différente
@@ -4292,6 +4309,41 @@ def draw_layered_whiteboard_animations(
                 else:
                     # Get path_config if available for path_follow mode
                     path_config = layer.get('path_config', None) if layer_mode == 'path_follow' else None
+                    
+                    # If path_follow mode with path_config and an image, we need to transform
+                    # the path coordinates from the original image space to the canvas space
+                    if path_config and layer_type == 'image' and 'orig_layer_img_w' in locals():
+                        # Calculate how the image was transformed:
+                        # 1. The original image (orig_layer_img_w x orig_layer_img_h) was scaled
+                        # 2. Then placed at offset (x_offset, y_offset) on the canvas
+                        # 3. The actual region on canvas is (x1, y1) to (x2, y2)
+                        
+                        # Scale factors from original image to placed region on canvas
+                        scale_factor_x = (x2 - x1) / orig_layer_img_w if orig_layer_img_w > 0 else 1.0
+                        scale_factor_y = (y2 - y1) / orig_layer_img_h if orig_layer_img_h > 0 else 1.0
+                        
+                        print(f"    📍 Transforming path points: orig=({orig_layer_img_w}x{orig_layer_img_h}), " +
+                              f"canvas region=({x1},{y1})-({x2},{y2}), scale=({scale_factor_x:.3f},{scale_factor_y:.3f})")
+                        
+                        # Transform path points
+                        transformed_path_config = []
+                        if isinstance(path_config, list):
+                            for point in path_config:
+                                transformed_point = {
+                                    'x': int(round(point['x'] * scale_factor_x + x1)),
+                                    'y': int(round(point['y'] * scale_factor_y + y1))
+                                }
+                                transformed_path_config.append(transformed_point)
+                            path_config = transformed_path_config
+                        elif isinstance(path_config, dict) and 'points' in path_config:
+                            for point in path_config['points']:
+                                transformed_point = {
+                                    'x': int(round(point['x'] * scale_factor_x + x1)),
+                                    'y': int(round(point['y'] * scale_factor_y + y1))
+                                }
+                                transformed_path_config.append(transformed_point)
+                            path_config = transformed_path_config
+                    
                     draw_masked_object(
                         variables=layer_vars,
                         skip_rate=layer_skip_rate,

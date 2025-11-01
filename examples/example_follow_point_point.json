@@ -1,6 +1,6 @@
 {
-  "_comment": "Example 5: Cinematic reveal with zoom out",
-  "_description": "Start zoomed in and gradually reveal the full scene",
+  "_comment": "Example: Path follow animation with arrow",
+  "_description": "Demonstrates path_follow mode with predefined path points that trace an arrow shape",
   "slides": [
     {
       "index": 0,
@@ -16,62 +16,20 @@
           "z_index": 1,
           "skip_rate": 3,
           "path_config": [
-            {
-              "x": 313,
-              "y": 162
-            },
-            {
-              "x": 191,
-              "y": 165
-            },
-            {
-              "x": 107,
-              "y": 166
-            },
-            {
-              "x": 68,
-              "y": 165
-            },
-            {
-              "x": 62,
-              "y": 128
-            },
-            {
-              "x": 56,
-              "y": 116
-            },
-            {
-              "x": 24,
-              "y": 130
-            },
-            {
-              "x": 7,
-              "y": 148
-            },
-            {
-              "x": -6,
-              "y": 163
-            },
-            {
-              "x": 9,
-              "y": 179
-            },
-            {
-              "x": 26,
-              "y": 191
-            },
-            {
-              "x": 43,
-              "y": 207
-            },
-            {
-              "x": 60,
-              "y": 221
-            },
-            {
-              "x": 68,
-              "y": 192
-            }
+            {"x": 123, "y": 272},
+            {"x": 106, "y": 279},
+            {"x": 50, "y": 330},
+            {"x": 0, "y": 392},
+            {"x": 6, "y": 421},
+            {"x": 50, "y": 480},
+            {"x": 122, "y": 526},
+            {"x": 147, "y": 521},
+            {"x": 161, "y": 504},
+            {"x": 400, "y": 400},
+            {"x": 600, "y": 380},
+            {"x": 777, "y": 367},
+            {"x": 150, "y": 280},
+            {"x": 131, "y": 272}
           ]
         }
       ]
