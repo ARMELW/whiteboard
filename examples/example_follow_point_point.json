@@ -6,6 +6,7 @@
       "index": 0,
       "layers": [
         {
+          "type": "image",  
           "mode": "path_follow",
           "image_path": "doodle/arrow.png",
           "position": {
