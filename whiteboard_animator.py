@@ -191,37 +191,30 @@ def render_text_to_image(text_config, target_width, target_height):
     Returns:
         numpy array (BGR format) with rendered text on white background
     """
+    from PIL import ImageFont, ImageDraw, Image
+    
     # Extract configuration
     text = text_config.get('text', '')
     font_name = text_config.get('font', 'Arial')
     
     # Determine font size with priority:
-    # 1. Explicit 'size' parameter
-    # 2. 'font_size_multiplier' applied to a base size
-    # 3. 'font_size_ratio' for dynamic sizing based on layer height
-    # 4. Auto-fit (find largest size that fits with margin)
+    # 1. Explicit 'size' parameter - use as-is
+    # 2. Auto-fit (find largest size that fits with margin)
+    # Note: font_size_multiplier and font_size_ratio are legacy parameters and should not be used
     
     explicit_size = text_config.get('size', None)
-    font_size_multiplier = text_config.get('font_size_multiplier', None)
-    font_size_ratio = text_config.get('font_size_ratio', None)
     
     if explicit_size is not None:
-        # Priority 1: Use explicit size, optionally multiplied
+        # Priority 1: Use explicit size directly
         font_size = int(explicit_size)
-        if font_size_multiplier is not None:
-            font_size = int(font_size * float(font_size_multiplier))
-    elif font_size_ratio is not None:
-        # Priority 2: Use font_size_ratio (percentage of layer height)
-        font_size = int(target_height * float(font_size_ratio))
     else:
-        # Priority 3: Auto-fit font size to layer dimensions
+        # Priority 2: Auto-fit font size to layer dimensions
         margin_w = int(target_width * 0.10)  # 10% width margin
         margin_h = int(target_height * 0.10) # 10% height margin
         fit_width = target_width - margin_w
         fit_height = target_height - margin_h
         font_size = min(fit_height, fit_width)
         temp_font = None
-        from PIL import ImageFont, ImageDraw, Image
         img_temp = Image.new('RGB', (target_width, target_height), color='white')
         draw_temp = ImageDraw.Draw(img_temp)
         lines = text_config.get('text', '').split('\n')
