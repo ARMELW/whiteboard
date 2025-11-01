@@ -257,7 +257,7 @@ def load_image_from_url_or_path(image_source):
             return None
         
         # Handle transparency (alpha channel) - convert to white background
-        if img.shape[2] == 4:  # Has alpha channel
+        if len(img.shape) == 3 and img.shape[2] == 4:  # Has alpha channel
             # Split channels
             bgr = img[:, :, :3]
             alpha = img[:, :, 3] / 255.0  # Normalize alpha to 0-1
@@ -3909,6 +3909,9 @@ def draw_layered_whiteboard_animations(
             # Check if this is a text layer
             layer_type = layer.get('type', 'image')
             
+            # Initialize original image dimensions (used for path_follow coordinate transformation)
+            orig_layer_img_h, orig_layer_img_w = 0, 0
+            
             if layer_type == 'text':
                 # Render text to image
                 text_config = layer.get('text_config', {})
@@ -4312,7 +4315,7 @@ def draw_layered_whiteboard_animations(
                     
                     # If path_follow mode with path_config and an image, we need to transform
                     # the path coordinates from the original image space to the canvas space
-                    if path_config and layer_type == 'image' and 'orig_layer_img_w' in locals():
+                    if path_config and layer_type == 'image' and orig_layer_img_w > 0:
                         # Calculate how the image was transformed:
                         # 1. The original image (orig_layer_img_w x orig_layer_img_h) was scaled
                         # 2. Then placed at offset (x_offset, y_offset) on the canvas
@@ -4326,8 +4329,8 @@ def draw_layered_whiteboard_animations(
                               f"canvas region=({x1},{y1})-({x2},{y2}), scale=({scale_factor_x:.3f},{scale_factor_y:.3f})")
                         
                         # Transform path points
-                        transformed_path_config = []
                         if isinstance(path_config, list):
+                            transformed_path_config = []
                             for point in path_config:
                                 transformed_point = {
                                     'x': int(round(point['x'] * scale_factor_x + x1)),
@@ -4336,13 +4339,15 @@ def draw_layered_whiteboard_animations(
                                 transformed_path_config.append(transformed_point)
                             path_config = transformed_path_config
                         elif isinstance(path_config, dict) and 'points' in path_config:
+                            transformed_points = []
                             for point in path_config['points']:
                                 transformed_point = {
                                     'x': int(round(point['x'] * scale_factor_x + x1)),
                                     'y': int(round(point['y'] * scale_factor_y + y1))
                                 }
-                                transformed_path_config.append(transformed_point)
-                            path_config = transformed_path_config
+                                transformed_points.append(transformed_point)
+                            # Maintain the dict structure with 'points' key
+                            path_config = {'points': transformed_points}
                     
                     draw_masked_object(
                         variables=layer_vars,
