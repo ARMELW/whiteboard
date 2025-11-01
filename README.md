@@ -19,6 +19,7 @@ Ce guide de 2800+ lignes couvre :
 ## Fonctionnalités
 
 - ✅ Génération de vidéos d'animation de dessin à partir d'images
+- ✅ **🆕 Configuration de Polices Simplifiée** - Système de configuration centralisé pour les polices (NOUVEAU!)
 - ✅ **🆕 Effets de Particules** - Confettis, étincelles, explosions, fumée, magie (NOUVEAU!)
 - ✅ **🆕 Support Audio Complet** - Musique de fond, effets sonores, voix off, sons auto-générés (NOUVEAU!)
 - ✅ **🆕 Performance & Optimisation** - Preview mode, checkpoints, batch processing, memory optimization
@@ -41,6 +42,52 @@ Ce guide de 2800+ lignes couvre :
 - ✅ Export JSON des données d'animation
 - ✅ Support de plusieurs formats d'image
 - ✅ Animation avec main réaliste
+
+### 🔤 Configuration de Polices Simplifiée (NOUVEAU!)
+
+Gérez vos polices personnalisées facilement avec le nouveau système de configuration centralisé :
+
+- **Configuration centralisée** - Toutes les polices définies dans `fonts.json`
+- **Pas besoin de `font_path`** - Spécifiez uniquement le nom de la police
+- **Support multi-styles** - Normal, bold, italic, bold italic
+- **Ajout facile** - Ajoutez de nouvelles polices sans modifier le code
+- **Fallback automatique** - Utilise les polices système si non configuré
+
+```json
+// Avant : vous deviez spécifier font_path à chaque fois
+{
+  "text_config": {
+    "text": "Your text",
+    "font": "Pacifico",
+    "font_path": "../fonts/Pacifico/Pacifico-Regular.ttf"
+  }
+}
+
+// Maintenant : juste le nom de la police !
+{
+  "text_config": {
+    "text": "Your text",
+    "font": "Pacifico"
+  }
+}
+```
+
+**Configuration dans fonts.json :**
+```json
+{
+  "fonts": {
+    "Pacifico": {
+      "normal": "fonts/Pacifico/Pacifico-Regular.ttf"
+    },
+    "Roboto": {
+      "normal": "fonts/Roboto/Roboto-Regular.ttf",
+      "bold": "fonts/Roboto/Roboto-Bold.ttf"
+    }
+  }
+}
+```
+
+**Documentation complète:** Voir [FONT_CONFIG_GUIDE.md](FONT_CONFIG_GUIDE.md)
 
 ### 🎆 Effets de Particules (NOUVEAU!)
 
