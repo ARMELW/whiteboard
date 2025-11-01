@@ -2,12 +2,13 @@
 
 ## Overview
 
-Successfully implemented **two new hand animation styles** for the whiteboard-it project:
+Successfully implemented **three new hand animation styles** for the whiteboard-it project:
 
 1. **Flood Fill Mode** - Region-based filling animation
 2. **Coloriage Mode** - Progressive line-by-line coloring animation
+3. **Path Follow Mode** - Point-by-point path following with natural hand movement
 
-The whiteboard-it project now supports **5 animation modes** in total, giving users complete flexibility in how their content is animated.
+The whiteboard-it project now supports **6 animation modes** in total, giving users complete flexibility in how their content is animated.
 
 ## Implementation Details
 
@@ -63,6 +64,42 @@ The whiteboard-it project now supports **5 animation modes** in total, giving us
 - Colorful graphics
 - Educational content
 
+### ✍️ Path Follow Mode
+
+**File**: `whiteboard_animator.py`  
+**Function**: `draw_path_follow()`  
+**Lines**: ~200 lines of code
+
+**Algorithm**:
+1. Extracts contour path points from the drawing using `cv2.findContours()`
+2. Sorts points to create natural drawing order (top-to-bottom, left-to-right)
+3. Moves hand sequentially through each path point
+4. Adds natural jitter to hand position for realistic movement
+5. Varies animation speed for human-like effect
+
+**Features**:
+- **Natural Hand Jitter**: Random offset (default ±2 pixels) on each point
+- **Speed Variation**: Variable drawing speed (default ±20% variation)
+- **Point Sampling**: Configurable sampling rate to control smoothness
+- **Path Extraction**: Automatic contour detection from drawing
+
+**Configuration Parameters**:
+- `jitter_amount` (default 2.0) - Amount of random hand offset in pixels
+- `speed_variation` (default 0.2) - Speed variation factor (0-1)
+- `point_sampling` (default 2) - Sample every Nth point
+
+**Performance**:
+- Variable based on drawing complexity
+- More natural and realistic than tile-based approach
+- Follows actual drawing paths point-by-point
+
+**Use Cases**:
+- Signature animations
+- Handwriting effects
+- Realistic drawing simulations
+- Path-based artwork
+- Calligraphy and lettering
+
 ## Mode Comparison
 
 | Mode | Algorithm | Speed | Frames (Test) | Best For |
@@ -71,6 +108,7 @@ The whiteboard-it project now supports **5 animation modes** in total, giving us
 | **erase** | Tile-based reverse | Medium | ~88 | Reveal effects |
 | **flood_fill** | Region-based | Fast | ~21 | Logos, simple shapes |
 | **coloriage** | Line-by-line | Slow | ~201 | Coloring art, illustrations |
+| **path_follow** | Point-by-point path | Variable | Variable | Signatures, handwriting, realistic drawing |
 | **static** | Instant | N/A | 0 | Static elements |
 
 ## Configuration Examples

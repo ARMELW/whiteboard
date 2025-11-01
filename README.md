@@ -48,7 +48,7 @@ Ce guide de 2800+ lignes couvre :
 
 ### 🎨 Modes d'Animation Multiples (NOUVEAU!)
 
-Choisissez parmi **cinq styles d'animation** pour créer vos vidéos :
+Choisissez parmi **six styles d'animation** pour créer vos vidéos :
 
 | Mode | Description | Vitesse | Idéal pour |
 |------|-------------|---------|------------|
@@ -56,6 +56,7 @@ Choisissez parmi **cinq styles d'animation** pour créer vos vidéos :
 | **`erase`** | Effacement tile par tile | Moyenne | Effets de révélation inverse |
 | **`flood_fill`** | Remplissage par régions connectées | Rapide | Logos, icônes, formes simples |
 | **`coloriage`** | Coloriage progressif ligne par ligne | Lente | Dessins à colorier, art coloré |
+| **`path_follow`** | Animation point par point avec main naturelle | Variable | Signatures, calligraphie, dessins réalistes |
 | **`static`** | Affichage instantané | Instantanée | Watermarks, logos statiques |
 
 **Exemple de configuration :**
@@ -76,6 +77,11 @@ Choisissez parmi **cinq styles d'animation** pour créer vos vidéos :
       "image_path": "highlights.png",
       "mode": "flood_fill",
       "skip_rate": 3
+    },
+    {
+      "image_path": "signature.png",
+      "mode": "path_follow",
+      "skip_rate": 2
     }
   ]
 }

@@ -3242,6 +3242,196 @@ def draw_coloriage(
     print(f"  ✅ Coloriage terminé: {total_pixels_colored} pixels coloriés")
 
 
+def extract_path_points(img_thresh, object_mask=None, sampling_rate=1):
+    """
+    Extract path points from drawing contours for point-by-point animation.
+    
+    Args:
+        img_thresh: Thresholded grayscale image
+        object_mask: Optional mask to limit extraction to specific region
+        sampling_rate: Point sampling rate (1 = all points, 2 = every other point, etc.)
+        
+    Returns:
+        List of (x, y) tuples representing the path points
+    """
+    # Apply mask if provided
+    img_to_process = img_thresh.copy()
+    if object_mask is not None:
+        object_mask_black_ind = np.where(object_mask == 0)
+        img_to_process[object_mask_black_ind] = 255
+    
+    # Find contours in the image
+    contours, _ = cv2.findContours(
+        (img_to_process < 250).astype(np.uint8),
+        cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_NONE  # Get all points
+    )
+    
+    # Extract all points from contours
+    path_points = []
+    for contour in contours:
+        # Flatten contour array and extract points
+        for point in contour:
+            x, y = point[0]
+            path_points.append((int(x), int(y)))
+    
+    # Sample points based on sampling_rate
+    if sampling_rate > 1:
+        path_points = path_points[::sampling_rate]
+    
+    # Sort points to create a drawing path (left to right, top to bottom)
+    # This creates a more natural drawing order
+    path_points.sort(key=lambda p: (p[1] // 50, p[0]))  # Group by vertical bands, then sort horizontally
+    
+    return path_points
+
+
+def draw_path_follow(
+    variables, object_mask=None, skip_rate=5, black_pixel_threshold=10,
+    eraser=None, eraser_mask_inv=None, eraser_ht=0, eraser_wd=0,
+    jitter_amount=2.0, speed_variation=0.2, point_sampling=2
+):
+    """
+    Draw animation following path points sequentially with natural hand movement.
+    
+    This implements a point-by-point path following animation where the hand/object 
+    moves from one path point to the next, simulating real hand drawing.
+    
+    Args:
+        variables: AllVariables object with image data
+        object_mask: Optional mask to limit drawing to specific region
+        skip_rate: Base frame skip rate for animation speed
+        black_pixel_threshold: Threshold for detecting drawn pixels
+        eraser: Eraser image (for eraser mode)
+        eraser_mask_inv: Inverted eraser mask (for eraser mode)
+        eraser_ht, eraser_wd: Eraser dimensions
+        jitter_amount: Amount of random offset for natural hand movement (pixels)
+        speed_variation: Variation in drawing speed (0-1, where 0.2 = 20% variation)
+        point_sampling: Sample every Nth point (1=all points, 2=every other point, etc.)
+    """
+    print(f"  🎨 Path follow mode: extracting path points...")
+    
+    # Extract path points from the drawing
+    path_points = extract_path_points(
+        variables.img_thresh, 
+        object_mask, 
+        sampling_rate=point_sampling
+    )
+    
+    if len(path_points) == 0:
+        print("  ⚠️ No path points found")
+        return
+    
+    print(f"  📍 Found {len(path_points)} path points to follow")
+    
+    # Initialize animation data if JSON export is enabled
+    if variables.export_json:
+        variables.animation_data = {
+            "drawing_sequence": [],
+            "frames_written": [],
+            "path_points": [[int(p[0]), int(p[1])] for p in path_points]
+        }
+    
+    # For each path point, draw progressively and move hand
+    counter = 0
+    drawn_points = set()  # Track which points we've already drawn
+    
+    for idx, (px, py) in enumerate(path_points):
+        # Skip if already drawn
+        if (px, py) in drawn_points:
+            continue
+        
+        # Draw a small region around this point
+        # This simulates drawing as the hand moves
+        radius = 2  # Small radius for natural stroke
+        for dy in range(-radius, radius + 1):
+            for dx in range(-radius, radius + 1):
+                draw_x = px + dx
+                draw_y = py + dy
+                
+                # Check bounds
+                if (0 <= draw_x < variables.resize_wd and 
+                    0 <= draw_y < variables.resize_ht):
+                    
+                    # Check if this pixel should be drawn (is part of the drawing)
+                    if variables.img_thresh[draw_y, draw_x] < 250:
+                        # Copy from original image
+                        variables.drawn_frame[draw_y, draw_x] = variables.img[draw_y, draw_x]
+                        drawn_points.add((draw_x, draw_y))
+        
+        # Add natural hand jitter
+        jitter_x = (np.random.random() - 0.5) * 2 * jitter_amount
+        jitter_y = (np.random.random() - 0.5) * 2 * jitter_amount
+        hand_coord_x = int(px + jitter_x)
+        hand_coord_y = int(py + jitter_y)
+        
+        # Clamp to image bounds
+        hand_coord_x = max(0, min(hand_coord_x, variables.resize_wd - 1))
+        hand_coord_y = max(0, min(hand_coord_y, variables.resize_ht - 1))
+        
+        # Draw hand on frame
+        drawn_frame_with_hand = draw_hand_on_img(
+            variables.drawn_frame.copy(),
+            variables.hand.copy(),
+            hand_coord_x,
+            hand_coord_y,
+            variables.hand_mask_inv.copy(),
+            variables.hand_ht,
+            variables.hand_wd,
+            variables.resize_ht,
+            variables.resize_wd,
+        )
+        
+        counter += 1
+        
+        # Vary speed naturally
+        speed_factor = 1.0 + (np.random.random() - 0.5) * 2 * speed_variation
+        adjusted_skip_rate = max(1, int(skip_rate * speed_factor))
+        
+        # Write frame based on adjusted skip rate
+        if counter % adjusted_skip_rate == 0 or idx == len(path_points) - 1:
+            # Apply watermark if specified
+            if variables.watermark_path:
+                drawn_frame_with_hand = apply_watermark(
+                    drawn_frame_with_hand,
+                    variables.watermark_path,
+                    variables.watermark_position,
+                    variables.watermark_opacity,
+                    variables.watermark_scale
+                )
+            
+            variables.video_object.write(drawn_frame_with_hand)
+            variables.frames_written += 1
+            
+            # Capture animation data if JSON export is enabled
+            if variables.export_json:
+                frame_data = {
+                    "frame_number": len(variables.animation_data["frames_written"]),
+                    "path_point_index": int(idx),
+                    "path_point": {"x": int(px), "y": int(py)},
+                    "hand_position": {
+                        "x": int(hand_coord_x),
+                        "y": int(hand_coord_y),
+                        "jitter": {"x": float(jitter_x), "y": float(jitter_y)}
+                    },
+                    "speed_factor": float(speed_factor),
+                    "points_remaining": int(len(path_points) - idx - 1)
+                }
+                variables.animation_data["frames_written"].append(frame_data)
+        
+        # Progress indicator
+        if idx > 0 and idx % 500 == 0:
+            progress = (idx / len(path_points)) * 100
+            print(f"  Path follow: {progress:.1f}% ({idx}/{len(path_points)} points)")
+    
+    # After drawing all points, overlay the complete colored image
+    # Only overlay where the current layer has content (non-white pixels)
+    content_mask = np.any(variables.img < 250, axis=2)
+    variables.drawn_frame[content_mask] = variables.img[content_mask]
+    
+    print(f"  ✅ Path follow complete: {len(path_points)} points traced")
+
+
 def draw_masked_object(
     variables, object_mask=None, skip_rate=5, black_pixel_threshold=10, mode='draw', 
     eraser=None, eraser_mask_inv=None, eraser_ht=0, eraser_wd=0
@@ -3252,7 +3442,7 @@ def draw_masked_object(
     et enregistre la trame.
     
     Args:
-        mode: 'draw' for normal drawing with hand, 'eraser' for eraser mode, 'flood_fill' for flood fill mode, 'coloriage' for coloring mode, 'static' for no animation
+        mode: 'draw' for normal drawing with hand, 'eraser' for eraser mode, 'flood_fill' for flood fill mode, 'coloriage' for coloring mode, 'path_follow' for point-by-point path animation, 'static' for no animation
         eraser: Eraser image (for eraser mode)
         eraser_mask_inv: Inverted eraser mask (for eraser mode)
         eraser_ht, eraser_wd: Eraser dimensions
@@ -3267,6 +3457,12 @@ def draw_masked_object(
     # For coloriage mode, use the dedicated coloriage function
     if mode == 'coloriage':
         draw_coloriage(variables, object_mask, skip_rate, black_pixel_threshold)
+        return
+    
+    # For path_follow mode, use the dedicated path follow function
+    if mode == 'path_follow':
+        draw_path_follow(variables, object_mask, skip_rate, black_pixel_threshold,
+                        eraser, eraser_mask_inv, eraser_ht, eraser_wd)
         return
     
     # For eraser mode, start with the full image visible
