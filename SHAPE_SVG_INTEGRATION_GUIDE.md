@@ -31,12 +31,16 @@ Ce document détaille les corrections apportées aux couches de type `shape` ave
 
 ### 1. Support Complet de `svg_reverse` pour SVG
 
-**Description:** Inverse l'ordre de dessin d'une forme extraite d'un fichier SVG.
+**Description:** Contrôle la direction de l'animation en inversant l'ordre des points du chemin SVG.
+
+**Fonctionnement:**
+- `svg_reverse: false` → L'animation démarre au **début** du chemin SVG (ex: queue de la flèche)
+- `svg_reverse: true` → L'animation démarre à la **fin** du chemin SVG (ex: pointe de la flèche)
 
 **Cas d'usage:**
-- Dessiner une flèche de la pointe vers la queue au lieu de queue vers pointe
-- Inverser le sens de dessin d'une signature
-- Créer des effets d'animation inversés
+- **Flèches directionnelles:** Adapter l'animation selon l'orientation de la flèche (gauche/droite)
+- **Signatures:** Contrôler le sens d'écriture (début → fin ou fin → début)
+- **Formes courbes:** Créer des animations qui suivent naturellement la forme visuelle
 
 **Configuration JSON:**
 ```json
@@ -53,27 +57,44 @@ Ce document détaille les corrections apportées aux couches de type `shape` ave
 **Paramètres:**
 | Paramètre | Type | Défaut | Description |
 |-----------|------|--------|-------------|
-| `svg_reverse` | boolean | `false` | Inverse l'ordre des points extraits |
+| `svg_reverse` | boolean | `false` | Contrôle le point de départ de l'animation (false = début du chemin, true = fin du chemin) |
 
 **Exemple d'utilisation:**
 ```json
 {
-  "_comment": "Dessiner une flèche en sens inverse",
+  "_comment": "Exemple: Deux flèches avec des animations adaptées à leur direction",
   "slides": [{
-    "layers": [{
-      "type": "shape",
-      "svg_path": "doodle/arrow.svg",
-      "svg_sampling_rate": 5,
-      "svg_reverse": true,
-      "shape_config": {
-        "color": "#FF0000",
-        "stroke_width": 3
+    "layers": [
+      {
+        "_comment": "Flèche pointant vers la droite → animation normale (queue à pointe)",
+        "type": "shape",
+        "svg_path": "doodle/arrow_right.svg",
+        "svg_reverse": false,
+        "position": {"x": 100, "y": 300},
+        "shape_config": {
+          "color": "#2E86DE",
+          "stroke_width": 3
+        },
+        "mode": "draw"
       },
-      "mode": "draw"
-    }]
+      {
+        "_comment": "Flèche pointant vers la gauche → animation inversée (commence à la pointe)",
+        "type": "shape",
+        "svg_path": "doodle/arrow_left.svg",
+        "svg_reverse": true,
+        "position": {"x": 100, "y": 500},
+        "shape_config": {
+          "color": "#E84118",
+          "stroke_width": 3
+        },
+        "mode": "draw"
+      }
+    ]
   }]
 }
 ```
+
+**💡 Astuce:** Pour une flèche courbe, utilisez `svg_reverse` pour faire correspondre le sens de l'animation avec la direction visuelle de la flèche. Cela rend l'animation plus naturelle et intuitive.
 
 ---
 

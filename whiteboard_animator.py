@@ -3971,11 +3971,15 @@ def draw_layered_whiteboard_animations(
                         # Extract configuration parameters
                         sampling_rate = layer.get('svg_sampling_rate', 10)
                         num_points = layer.get('svg_num_points', None)
+                        # svg_reverse controls animation start point:
+                        # - False: animation starts at path beginning (e.g., arrow tail)
+                        # - True: animation starts at path end (e.g., arrow tip)
+                        # This is useful for arrows pointing in different directions
                         reverse = layer.get('svg_reverse', False)
                         
                         print(f"    🔍 Extraction des points (sampling={sampling_rate}, num_points={num_points}, reverse={reverse})...")
                         
-                        # Extract points
+                        # Extract points (reverse parameter controls animation direction)
                         points = extract_path_points(svg_path, sampling_rate, reverse)
                         
                         # Limit number of points if specified

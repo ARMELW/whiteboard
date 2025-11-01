@@ -1,0 +1,277 @@
+{
+  "_comment": "Démonstration de svg_reverse pour contrôler la direction d'animation des flèches",
+  "_description": "Ce fichier démontre comment svg_reverse permet d'adapter l'animation selon l'orientation de la flèche",
+  "output": {
+    "path": "arrow_direction_demo.mp4",
+    "fps": 30,
+    "format": "16:9",
+    "quality": 23
+  },
+  "slides": [
+    {
+      "_comment": "Slide 1: Explication du concept",
+      "duration": 6,
+      "background": "#FFFFFF",
+      "layers": [
+        {
+          "type": "text",
+          "text_config": {
+            "text": "svg_reverse contrôle le point de départ de l'animation",
+            "font": "DejaVuSans-Bold",
+            "size": 48,
+            "color": "#2C3E50",
+            "align": "center"
+          },
+          "position": {"x": 0, "y": 100},
+          "z_index": 1,
+          "mode": "static"
+        },
+        {
+          "type": "text",
+          "text_config": {
+            "text": "Parfait pour adapter l'animation à la direction de la flèche",
+            "font": "DejaVuSans",
+            "size": 36,
+            "color": "#7F8C8D",
+            "align": "center"
+          },
+          "position": {"x": 0, "y": 200},
+          "z_index": 2,
+          "mode": "static"
+        }
+      ]
+    },
+    {
+      "_comment": "Slide 2: Flèche avec svg_reverse: false",
+      "duration": 8,
+      "background": "#FFFFFF",
+      "layers": [
+        {
+          "type": "text",
+          "text_config": {
+            "text": "svg_reverse: false",
+            "font": "DejaVuSans-Bold",
+            "size": 42,
+            "color": "#2E86DE",
+            "align": "left"
+          },
+          "position": {"x": 100, "y": 100},
+          "z_index": 3,
+          "mode": "static"
+        },
+        {
+          "type": "text",
+          "text_config": {
+            "text": "L'animation démarre au DÉBUT du chemin SVG",
+            "font": "DejaVuSans",
+            "size": 32,
+            "color": "#34495E",
+            "align": "left"
+          },
+          "position": {"x": 100, "y": 180},
+          "z_index": 4,
+          "mode": "static"
+        },
+        {
+          "_comment": "Flèche dessinée avec svg_reverse: false",
+          "type": "shape",
+          "svg_path": "../doodle/arrow.svg",
+          "svg_sampling_rate": 8,
+          "svg_reverse": false,
+          "position": {"x": 400, "y": 400},
+          "shape_config": {
+            "color": "#2E86DE",
+            "fill_color": "#D6EAF8",
+            "stroke_width": 4
+          },
+          "z_index": 5,
+          "skip_rate": 6,
+          "mode": "draw"
+        },
+        {
+          "type": "text",
+          "text_config": {
+            "text": "→ Animation suit la flèche naturellement",
+            "font": "DejaVuSans",
+            "size": 28,
+            "color": "#27AE60",
+            "align": "left"
+          },
+          "position": {"x": 100, "y": 700},
+          "z_index": 6,
+          "mode": "static"
+        }
+      ]
+    },
+    {
+      "_comment": "Slide 3: Flèche avec svg_reverse: true",
+      "duration": 8,
+      "background": "#FFFFFF",
+      "layers": [
+        {
+          "type": "text",
+          "text_config": {
+            "text": "svg_reverse: true",
+            "font": "DejaVuSans-Bold",
+            "size": 42,
+            "color": "#E74C3C",
+            "align": "left"
+          },
+          "position": {"x": 100, "y": 100},
+          "z_index": 3,
+          "mode": "static"
+        },
+        {
+          "type": "text",
+          "text_config": {
+            "text": "L'animation démarre à la FIN du chemin SVG",
+            "font": "DejaVuSans",
+            "size": 32,
+            "color": "#34495E",
+            "align": "left"
+          },
+          "position": {"x": 100, "y": 180},
+          "z_index": 4,
+          "mode": "static"
+        },
+        {
+          "_comment": "Flèche dessinée avec svg_reverse: true",
+          "type": "shape",
+          "svg_path": "../doodle/arrow.svg",
+          "svg_sampling_rate": 8,
+          "svg_reverse": true,
+          "position": {"x": 400, "y": 400},
+          "shape_config": {
+            "color": "#E74C3C",
+            "fill_color": "#FADBD8",
+            "stroke_width": 4
+          },
+          "z_index": 5,
+          "skip_rate": 6,
+          "mode": "draw"
+        },
+        {
+          "type": "text",
+          "text_config": {
+            "text": "→ Animation part de la pointe de la flèche",
+            "font": "DejaVuSans",
+            "size": 28,
+            "color": "#27AE60",
+            "align": "left"
+          },
+          "position": {"x": 100, "y": 700},
+          "z_index": 6,
+          "mode": "static"
+        }
+      ]
+    },
+    {
+      "_comment": "Slide 4: Cas d'usage pratique - flèches dans différentes directions",
+      "duration": 10,
+      "background": "#FFFFFF",
+      "layers": [
+        {
+          "type": "text",
+          "text_config": {
+            "text": "Cas d'usage: Adapter l'animation à la direction",
+            "font": "DejaVuSans-Bold",
+            "size": 44,
+            "color": "#2C3E50",
+            "align": "center"
+          },
+          "position": {"x": 0, "y": 80},
+          "z_index": 1,
+          "mode": "static"
+        },
+        {
+          "_comment": "Flèche courbée pointant vers la droite - animation normale",
+          "type": "shape",
+          "svg_path": "../doodle/arrow.svg",
+          "svg_sampling_rate": 8,
+          "svg_reverse": false,
+          "position": {"x": 200, "y": 300},
+          "shape_config": {
+            "color": "#3498DB",
+            "fill_color": "#AED6F1",
+            "stroke_width": 4
+          },
+          "z_index": 2,
+          "skip_rate": 5,
+          "mode": "draw"
+        },
+        {
+          "type": "text",
+          "text_config": {
+            "text": "svg_reverse: false",
+            "font": "DejaVuSans",
+            "size": 24,
+            "color": "#3498DB",
+            "align": "center"
+          },
+          "position": {"x": 200, "y": 500},
+          "z_index": 3,
+          "mode": "static"
+        },
+        {
+          "_comment": "Flèche courbée pointant dans une autre direction - animation inversée",
+          "type": "shape",
+          "svg_path": "../doodle/arrow.svg",
+          "svg_sampling_rate": 8,
+          "svg_reverse": true,
+          "position": {"x": 900, "y": 300},
+          "shape_config": {
+            "color": "#E67E22",
+            "fill_color": "#FAD7A0",
+            "stroke_width": 4
+          },
+          "z_index": 4,
+          "skip_rate": 5,
+          "mode": "draw"
+        },
+        {
+          "type": "text",
+          "text_config": {
+            "text": "svg_reverse: true",
+            "font": "DejaVuSans",
+            "size": 24,
+            "color": "#E67E22",
+            "align": "center"
+          },
+          "position": {"x": 900, "y": 500},
+          "z_index": 5,
+          "mode": "static"
+        },
+        {
+          "type": "text",
+          "text_config": {
+            "text": "💡 L'animation s'adapte automatiquement à la direction visuelle",
+            "font": "DejaVuSans",
+            "size": 30,
+            "color": "#27AE60",
+            "align": "center"
+          },
+          "position": {"x": 0, "y": 650},
+          "z_index": 6,
+          "mode": "static"
+        }
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "after_slide": 0,
+      "type": "fade",
+      "duration": 0.5
+    },
+    {
+      "after_slide": 1,
+      "type": "fade",
+      "duration": 0.5
+    },
+    {
+      "after_slide": 2,
+      "type": "fade",
+      "duration": 0.5
+    }
+  ]
+}

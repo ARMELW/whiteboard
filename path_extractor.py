@@ -113,7 +113,9 @@ def extract_from_svg(svg_path, sampling_rate=5, reverse=False):
     Args:
         svg_path: Path to the SVG file
         sampling_rate: Sampling rate for point extraction (pixels between points)
-        reverse: Reverse the order of points
+        reverse: Controls animation start point
+                 False = start at path beginning (e.g., arrow tail)
+                 True = start at path end (e.g., arrow tip)
         
     Returns:
         List of points [{"x": ..., "y": ...}, ...]
@@ -164,9 +166,14 @@ def extract_from_svg(svg_path, sampling_rate=5, reverse=False):
             points = parse_svg_path(path_data, sampling_rate)
             all_points.extend(points)
     
-    # Reverse the order of points if requested
-    # This changes the drawing direction from start-to-end to end-to-start
-    # Useful for: drawing arrows backwards, reversing signature direction, etc.
+    # Reverse the order of points if requested to control animation direction
+    # This changes where the animation starts:
+    #   - reverse=False: animation starts at path beginning (e.g., arrow tail)
+    #   - reverse=True: animation starts at path end (e.g., arrow tip)
+    # Useful for: 
+    #   - Adapting animation to arrow direction (left/right/curved arrows)
+    #   - Controlling signature writing direction
+    #   - Making animation follow visual flow naturally
     if reverse:
         all_points = all_points[::-1]
     
@@ -212,6 +219,7 @@ def extract_from_png(image_path, sampling_rate=5, reverse=False):
     # Échantillonner
     sampled_points = all_points[::sampling_rate]
     
+    # Reverse points to control animation start direction (same as SVG)
     if reverse:
         sampled_points = sampled_points[::-1]
     
@@ -225,7 +233,9 @@ def extract_path_points(file_path, sampling_rate=5, reverse=False):
     Args:
         file_path: Chemin vers le fichier
         sampling_rate: Échantillonnage (distance entre points)
-        reverse: Inverser l'ordre des points
+        reverse: Contrôle le point de départ de l'animation
+                 False = début du chemin (ex: queue de flèche)
+                 True = fin du chemin (ex: pointe de flèche)
     
     Returns:
         Liste de points [{"x": ..., "y": ...}, ...]
