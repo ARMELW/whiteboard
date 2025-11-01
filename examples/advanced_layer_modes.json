@@ -23,7 +23,6 @@
           },
           "text_config": {
             "text": "Votre texte ici\nleka wa",
-            "font_path": "fonts/Arial.ttf",
             "font": "Arial",
             "size": 55,
             "style": "normal",
