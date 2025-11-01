@@ -6,15 +6,14 @@
       "index": 0,
       "layers": [
         {
-          "type": "image",
           "mode": "path_follow",
-          "image_path": "doodle/arrow.svg",
+          "image_path": "doodle/arrow.png",
           "position": {
             "x": 0,
             "y": 0
           },
           "z_index": 1,
-          "skip_rate": 10,
+          "skip_rate": 3,
           "path_config": [
             {
               "x": 313,
