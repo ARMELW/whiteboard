@@ -1,0 +1,125 @@
+{
+  "_comment": "Example: Automatic SVG path extraction for shapes",
+  "_description": "This demonstrates the automatic extraction feature - no need to run path_extractor.py manually!",
+  "_new_feature": "Just specify svg_path and the system will automatically extract the path and colors",
+  "output": {
+    "path": "shape_auto_extract_output.mp4",
+    "fps": 30,
+    "format": "16:9",
+    "quality": 23
+  },
+  "slides": [
+    {
+      "duration": 8,
+      "background": "#ffffff",
+      "layers": [
+        {
+          "_comment": "Automatic extraction from SVG - Method 1: Simple",
+          "type": "shape",
+          "svg_path": "../doodle/arrow.svg",
+          "z_index": 1,
+          "skip_rate": 5,
+          "mode": "draw"
+        }
+      ]
+    },
+    {
+      "duration": 10,
+      "background": "#ffffff",
+      "layers": [
+        {
+          "_comment": "Automatic extraction with custom parameters",
+          "type": "shape",
+          "svg_path": "../doodle/arrow.svg",
+          "svg_sampling_rate": 5,
+          "svg_num_points": 80,
+          "svg_reverse": false,
+          "shape_config": {
+            "_comment": "You can still override colors and stroke",
+            "color": "#E74C3C",
+            "fill_color": "#FADBD8",
+            "stroke_width": 4
+          },
+          "z_index": 1,
+          "skip_rate": 8,
+          "mode": "draw"
+        },
+        {
+          "type": "text",
+          "text_config": {
+            "text": "Auto-extracted from SVG!",
+            "font": "DejaVuSans",
+            "size": 48,
+            "color": "#2C3E50",
+            "align": "center"
+          },
+          "position": {"x": 0, "y": 650},
+          "z_index": 2,
+          "skip_rate": 8,
+          "mode": "draw"
+        }
+      ]
+    },
+    {
+      "_comment": "Multiple SVG shapes on one slide",
+      "duration": 12,
+      "background": "#ffffff",
+      "layers": [
+        {
+          "type": "shape",
+          "svg_path": "../doodle/arrow.svg",
+          "svg_num_points": 50,
+          "shape_config": {
+            "color": "#3498DB",
+            "fill_color": "#AED6F1",
+            "stroke_width": 3
+          },
+          "z_index": 1,
+          "skip_rate": 8,
+          "mode": "draw"
+        },
+        {
+          "type": "shape",
+          "svg_path": "../doodle/aa.svg",
+          "svg_num_points": 60,
+          "shape_config": {
+            "color": "#E74C3C",
+            "fill_color": "#F5B7B1",
+            "stroke_width": 3
+          },
+          "z_index": 2,
+          "skip_rate": 8,
+          "mode": "draw"
+        },
+        {
+          "type": "text",
+          "text_config": {
+            "text": "Multiple SVG Shapes",
+            "font": "DejaVuSans",
+            "size": 52,
+            "color": "#2C3E50",
+            "align": "center"
+          },
+          "position": {"x": 0, "y": 800},
+          "z_index": 3,
+          "skip_rate": 8,
+          "mode": "draw"
+        }
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "after_slide": 0,
+      "type": "fade",
+      "duration": 0.8,
+      "pause_before": 1.0
+    },
+    {
+      "after_slide": 1,
+      "type": "wipe",
+      "duration": 0.8,
+      "pause_before": 1.0
+    }
+  ]
+}
