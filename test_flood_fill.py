@@ -6,6 +6,7 @@ import os
 import cv2
 import numpy as np
 import json
+import subprocess
 
 def create_test_image():
     """Create a simple test image with distinct regions."""
@@ -180,8 +181,6 @@ def main():
     print("=" * 60)
     print("FLOOD FILL MODE TEST SUITE")
     print("=" * 60)
-    
-    import subprocess
     
     # Test 1: Basic flood fill mode
     test1_passed = test_flood_fill_mode()

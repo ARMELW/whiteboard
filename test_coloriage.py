@@ -6,6 +6,7 @@ import os
 import cv2
 import numpy as np
 import json
+import subprocess
 
 def create_colorful_test_image():
     """Create a colorful test image for coloriage demo."""

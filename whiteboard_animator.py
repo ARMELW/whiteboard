@@ -2995,6 +2995,9 @@ def draw_flood_fill(
     Implémente l'animation de remplissage de type "flood fill".
     Identifie les régions connectées et les remplit progressivement avec la main.
     
+    Utilise la 8-connectivité pour détecter les régions, ce qui permet de gérer
+    correctement les coins et les zones étroites en considérant les voisins diagonaux.
+    
     Args:
         variables: AllVariables object with image data
         object_mask: Optional mask to restrict drawing area
@@ -3017,8 +3020,10 @@ def draw_flood_fill(
     # Create a binary mask of content
     binary_mask = (img_thresh_copy < black_pixel_threshold).astype(np.uint8)
     
-    # Find connected components (regions)
-    num_labels, labels = cv2.connectedComponents(binary_mask)
+    # Find connected components (regions) using 8-connectivity
+    # 8-connectivity includes diagonal neighbors, which improves fill coverage
+    # in corners and narrow areas compared to 4-connectivity (horizontal/vertical only)
+    num_labels, labels = cv2.connectedComponents(binary_mask, connectivity=8)
     
     # Collect regions (skip label 0 which is background)
     regions = []
