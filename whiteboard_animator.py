@@ -3301,7 +3301,8 @@ def draw_path_follow(
     eraser=None, eraser_mask_inv=None, eraser_ht=0, eraser_wd=0,
     jitter_amount=PATH_FOLLOW_DEFAULT_JITTER, 
     speed_variation=PATH_FOLLOW_DEFAULT_SPEED_VARIATION, 
-    point_sampling=PATH_FOLLOW_DEFAULT_SAMPLING
+    point_sampling=PATH_FOLLOW_DEFAULT_SAMPLING,
+    path_config=None
 ):
     """
     Draw animation following path points sequentially with natural hand movement.
@@ -3320,21 +3321,29 @@ def draw_path_follow(
         jitter_amount: Amount of random offset for natural hand movement (pixels)
         speed_variation: Variation in drawing speed (0-1, where 0.2 = 20% variation)
         point_sampling: Sample every Nth point (1=all points, 2=every other point, etc.)
+        path_config: Optional dict with predefined path points (e.g. {"points": [{"x": 12, "y": 30}, ...]})
     """
-    print(f"  🎨 Path follow mode: extracting path points...")
-    
-    # Extract path points from the drawing
-    path_points = extract_path_points(
-        variables.img_thresh, 
-        object_mask, 
-        sampling_rate=point_sampling
-    )
-    
-    if len(path_points) == 0:
-        print("  ⚠️ No path points found")
-        return
-    
-    print(f"  📍 Found {len(path_points)} path points to follow")
+    # Check if we have predefined path points from config
+    if path_config and 'points' in path_config:
+        print(f"  🎨 Path follow mode: using predefined path points from config...")
+        # Convert config points to list of tuples
+        path_points = [(p['x'], p['y']) for p in path_config['points']]
+        print(f"  📍 Using {len(path_points)} predefined path points")
+    else:
+        print(f"  🎨 Path follow mode: extracting path points from image...")
+        
+        # Extract path points from the drawing
+        path_points = extract_path_points(
+            variables.img_thresh, 
+            object_mask, 
+            sampling_rate=point_sampling
+        )
+        
+        if len(path_points) == 0:
+            print("  ⚠️ No path points found")
+            return
+        
+        print(f"  📍 Found {len(path_points)} path points to follow")
     
     # Initialize animation data if JSON export is enabled
     if variables.export_json:
@@ -3446,7 +3455,7 @@ def draw_path_follow(
 
 def draw_masked_object(
     variables, object_mask=None, skip_rate=5, black_pixel_threshold=10, mode='draw', 
-    eraser=None, eraser_mask_inv=None, eraser_ht=0, eraser_wd=0
+    eraser=None, eraser_mask_inv=None, eraser_ht=0, eraser_wd=0, path_config=None
 ):
     """
     Implémente la logique de dessin en quadrillage.
@@ -3458,6 +3467,7 @@ def draw_masked_object(
         eraser: Eraser image (for eraser mode)
         eraser_mask_inv: Inverted eraser mask (for eraser mode)
         eraser_ht, eraser_wd: Eraser dimensions
+        path_config: Optional dict with predefined path points for path_follow mode
     """
     # print("Skip Rate: ", skip_rate)
     
@@ -3474,7 +3484,8 @@ def draw_masked_object(
     # For path_follow mode, use the dedicated path follow function
     if mode == 'path_follow':
         draw_path_follow(variables, object_mask, skip_rate, black_pixel_threshold,
-                        eraser, eraser_mask_inv, eraser_ht, eraser_wd)
+                        eraser, eraser_mask_inv, eraser_ht, eraser_wd,
+                        path_config=path_config)
         return
     
     # For eraser mode, start with the full image visible
@@ -4221,10 +4232,13 @@ def draw_layered_whiteboard_animations(
                         variables.video_object.write(frame_with_arrow)
                         layer_vars.frames_written += 1
                 else:
+                    # Get path_config if available for path_follow mode
+                    path_config = layer.get('path_config', None) if layer_mode == 'path_follow' else None
                     draw_masked_object(
                         variables=layer_vars,
                         skip_rate=layer_skip_rate,
-                        mode='draw'
+                        mode=layer_mode,
+                        path_config=path_config
                     )
             
             # Accumulate frame count from this layer

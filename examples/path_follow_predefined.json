@@ -1,0 +1,39 @@
+{
+  "output": {
+    "path": "path_follow_predefined.mp4",
+    "fps": 30,
+    "format": "16:9",
+    "quality": 23
+  },
+  "slides": [
+    {
+      "duration": 8,
+      "background": "#ffffff",
+      "layers": [
+        {
+          "image_path": "../doodle/1.jpg",
+          "mode": "path_follow",
+          "skip_rate": 2,
+          "position": "center",
+          "z_index": 1,
+          "path_config": {
+            "points": [
+              {"x": 100, "y": 100},
+              {"x": 150, "y": 120},
+              {"x": 200, "y": 140},
+              {"x": 250, "y": 160},
+              {"x": 300, "y": 180},
+              {"x": 350, "y": 200},
+              {"x": 400, "y": 220},
+              {"x": 450, "y": 240},
+              {"x": 500, "y": 260},
+              {"x": 550, "y": 280},
+              {"x": 600, "y": 300}
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "description": "Demo of path_follow animation mode with predefined path points from config"
+}
