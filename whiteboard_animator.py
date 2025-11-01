@@ -3361,15 +3361,28 @@ def draw_path_follow(
         jitter_amount: Amount of random offset for natural hand movement (pixels)
         speed_variation: Variation in drawing speed (0-1, where 0.2 = 20% variation)
         point_sampling: Sample every Nth point (1=all points, 2=every other point, etc.)
-        path_config: Optional dict with predefined path points (e.g. {"points": [{"x": 12, "y": 30}, ...]})
+        path_config: Optional dict/list with predefined path points 
+                     (e.g. {"points": [{"x": 12, "y": 30}, ...]} or [{"x": 12, "y": 30}, ...])
     """
     # Check if we have predefined path points from config
-    if path_config and 'points' in path_config:
-        print(f"  🎨 Path follow mode: using predefined path points from config...")
-        # Convert config points to list of tuples
-        path_points = [(p['x'], p['y']) for p in path_config['points']]
-        print(f"  📍 Using {len(path_points)} predefined path points")
-    else:
+    if path_config:
+        # Support both formats: array directly or object with 'points' key
+        if isinstance(path_config, list):
+            # Direct array format: [{"x": 1, "y": 2}, ...]
+            print(f"  🎨 Path follow mode: using predefined path points from config (array format)...")
+            path_points = [(p['x'], p['y']) for p in path_config]
+            print(f"  📍 Using {len(path_points)} predefined path points")
+        elif isinstance(path_config, dict) and 'points' in path_config:
+            # Object format: {"points": [{"x": 1, "y": 2}, ...]}
+            print(f"  🎨 Path follow mode: using predefined path points from config (object format)...")
+            path_points = [(p['x'], p['y']) for p in path_config['points']]
+            print(f"  📍 Using {len(path_points)} predefined path points")
+        else:
+            # Invalid format, fall through to image extraction
+            print(f"  ⚠️ Invalid path_config format, falling back to image extraction")
+            path_config = None
+    
+    if not path_config:
         print(f"  🎨 Path follow mode: extracting path points from image...")
         
         # Extract path points from the drawing
