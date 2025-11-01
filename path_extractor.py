@@ -108,7 +108,14 @@ def extract_svg_colors(svg_path):
 
 def extract_from_svg(svg_path, sampling_rate=5):
     """
-    Extrait les points de tous les paths SVG.
+    Extract points from all SVG paths.
+    
+    Args:
+        svg_path: Path to the SVG file
+        sampling_rate: Sampling rate for point extraction (pixels between points)
+        
+    Returns:
+        List of points [{"x": ..., "y": ...}, ...]
     """
     try:
         from svg.path import parse_path
@@ -134,7 +141,7 @@ def extract_from_svg(svg_path, sampling_rate=5):
             paths = root.findall(ns, namespaces)
             if paths:
                 break
-        except:
+        except (AttributeError, KeyError):
             continue
     
     # Fallback: chercher sans namespace
@@ -314,7 +321,7 @@ if __name__ == "__main__":
     
     # Vérifier les arguments
     if len(sys.argv) < 2:
-        print("Usage: python path_extractor.py <fichier> [sampling_rate] [--reverse] [--num-points N]")
+        print("Usage: python path_extractor.py <file> [sampling_rate] [--reverse] [--num-points N]")
         print("\nExemples:")
         print("  python path_extractor.py arrow.svg")
         print("  python path_extractor.py arrow.png 5")

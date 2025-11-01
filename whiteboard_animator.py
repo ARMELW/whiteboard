@@ -830,7 +830,8 @@ def render_shape_to_image(shape_config, target_width, target_height):
     
     elif shape_type == 'triangle':
         # Equilateral triangle
-        h = int(size * 0.866)  # height = size * sqrt(3)/2
+        SQRT_3_OVER_2 = 0.866025403784  # sqrt(3)/2 for equilateral triangle height
+        h = int(size * SQRT_3_OVER_2)  # height = size * sqrt(3)/2
         pts = np.array([
             [x, y - int(2*h/3)],  # top
             [x - int(size/2), y + int(h/3)],  # bottom left
