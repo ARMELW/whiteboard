@@ -99,6 +99,10 @@ DEFAULT_MAIN_IMG_DURATION = 3
 DEFAULT_CRF = 18  # Lower = better quality (0-51, 18 is visually lossless)
 MAX_TEXT_DISPLAY_LENGTH = 50  # Maximum characters to show in text layer display
 
+# Text threshold constants for proper filled text detection
+TEXT_THRESHOLD = 240  # Pixel intensity threshold for text detection (0-255)
+WHITE_RATIO_THRESHOLD = 0.7  # Ratio of white pixels to determine if image is text-only
+
 # --- Classes et Fonctions ---
 
 def load_image_from_url_or_path(image_source):
@@ -175,7 +179,8 @@ def render_text_to_image(text_config, target_width, target_height):
         text_config: Dictionary with text configuration:
             - text: The text content to render
             - font: Font family name (default: "Arial")
-            - size: Font size in pixels (default: 32)
+            - size: Font size in pixels (default: auto-fit)
+            - font_path: Explicit path to font file (optional)
             - color: Text color as RGB tuple or hex string (default: (0, 0, 0) black)
             - style: "normal", "bold", "italic", or "bold_italic" (default: "normal")
             - line_height: Line spacing multiplier (default: 1.2)
@@ -191,8 +196,6 @@ def render_text_to_image(text_config, target_width, target_height):
     Returns:
         numpy array (BGR format) with rendered text on white background
     """
-    from PIL import ImageFont, ImageDraw, Image
-    
     # Extract configuration
     text = text_config.get('text', '')
     font_name = text_config.get('font', 'Arial')
@@ -200,7 +203,6 @@ def render_text_to_image(text_config, target_width, target_height):
     # Determine font size with priority:
     # 1. Explicit 'size' parameter - use as-is
     # 2. Auto-fit (find largest size that fits with margin)
-    # Note: font_size_multiplier and font_size_ratio are legacy parameters and should not be used
     
     explicit_size = text_config.get('size', None)
     
@@ -1181,14 +1183,14 @@ def preprocess_image(img, variables):
     cl1 = clahe.apply(img_gray)
 
     # Use a simple threshold for better detection of filled text
-    # This captures all pixels that are not white (< 240)
+    # This captures all pixels that are not white (< TEXT_THRESHOLD)
     # For text layers, this works better than adaptive threshold
-    _, img_thresh = cv2.threshold(img_gray, 240, 255, cv2.THRESH_BINARY)
+    _, img_thresh = cv2.threshold(img_gray, TEXT_THRESHOLD, 255, cv2.THRESH_BINARY)
     
     # For images with more complex content, fall back to adaptive threshold
     # Check if image is mostly white (likely a text layer)
-    white_ratio = np.sum(img_gray > 240) / (img_gray.shape[0] * img_gray.shape[1])
-    if white_ratio < 0.7:  # Less than 70% white - use adaptive threshold for complex images
+    white_ratio = np.sum(img_gray > TEXT_THRESHOLD) / (img_gray.shape[0] * img_gray.shape[1])
+    if white_ratio < WHITE_RATIO_THRESHOLD:  # Less than threshold - use adaptive threshold for complex images
         img_thresh = cv2.adaptiveThreshold(
             img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 10
         )
