@@ -9,8 +9,6 @@ path_follow animations as reported in the issue.
 import sys
 import os
 import subprocess
-import json
-import tempfile
 from pathlib import Path
 
 def test_svg_loading():

@@ -197,7 +197,7 @@ def load_image_from_url_or_path(image_source):
             # Nettoyer le fichier temporaire
             try:
                 os.unlink(tmp_path)
-            except:
+            except (OSError, FileNotFoundError):
                 pass
             
             if img is None:
@@ -237,7 +237,7 @@ def load_image_from_url_or_path(image_source):
                 # Clean up temporary file
                 try:
                     os.unlink(tmp_path)
-                except:
+                except (OSError, FileNotFoundError):
                     pass
                 
                 if img is None:
