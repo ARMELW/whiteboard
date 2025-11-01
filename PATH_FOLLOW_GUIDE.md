@@ -56,6 +56,41 @@ Point 1 → Point 2 → Point 3 → ... → Point N
 }
 ```
 
+### Predefined Path Configuration (NEW! 🆕)
+
+You can now specify custom path points directly in the configuration instead of extracting them from the image:
+
+```json
+{
+  "layers": [
+    {
+      "image_path": "signature.png",
+      "mode": "path_follow",
+      "skip_rate": 2,
+      "path_config": {
+        "points": [
+          {"x": 100, "y": 100},
+          {"x": 150, "y": 120},
+          {"x": 200, "y": 140},
+          {"x": 250, "y": 160},
+          {"x": 300, "y": 180}
+        ]
+      }
+    }
+  ]
+}
+```
+
+**How it works:**
+- When `path_config` is provided, the system uses the predefined points instead of extracting contours from the image
+- The image is still used to determine what content to draw at each point
+- Each point should be within the bounds of the image dimensions
+
+**Use cases:**
+- Creating custom drawing paths that don't follow the image contours
+- Fine-tuning the exact path the hand follows
+- Creating specific drawing sequences for artistic effects
+
 ### Advanced Configuration
 
 The `path_follow` mode supports the following internal parameters (modifiable in code):
@@ -216,7 +251,43 @@ The number of frames depends on:
 }
 ```
 
-### Example 3: Multi-Step Drawing
+### Example 3: Predefined Path (NEW! 🆕)
+
+```json
+{
+  "output": {
+    "path": "custom_path_animation.mp4",
+    "fps": 30,
+    "format": "16:9"
+  },
+  "slides": [
+    {
+      "duration": 6,
+      "layers": [
+        {
+          "image_path": "drawing.png",
+          "mode": "path_follow",
+          "skip_rate": 2,
+          "position": "center",
+          "path_config": {
+            "points": [
+              {"x": 100, "y": 100},
+              {"x": 150, "y": 120},
+              {"x": 200, "y": 140},
+              {"x": 250, "y": 160},
+              {"x": 300, "y": 180},
+              {"x": 350, "y": 200},
+              {"x": 400, "y": 220}
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Example 4: Multi-Step Drawing
 
 ```json
 {
