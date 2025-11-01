@@ -289,17 +289,6 @@ def render_text_to_image(text_config, target_width, target_height):
     
     # 4. Chargement de la Police
     font = None
-    font_path_explicit = text_config.get('font_path', None)
-    
-    if font_path_explicit:
-        try:
-            if not os.path.isabs(font_path_explicit):
-                font_path_explicit = os.path.join(os.getcwd(), font_path_explicit)
-            if os.path.exists(font_path_explicit):
-                font = ImageFont.truetype(font_path_explicit, font_size)
-                # print(f"  ✓ Loaded font from explicit path: {font_path_explicit}")
-        except Exception as e:
-            print(f"  ⚠️ Failed to load font from path {font_path_explicit}: {e}")
     
     fonts_to_try = [(font_name, style)]
     for fallback_font in font_fallbacks:
