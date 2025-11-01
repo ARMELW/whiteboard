@@ -4,24 +4,14 @@
   "slides": [
     {
       "index": 0,
-      "duration": 10,
       "layers": [
         {
-          "image_path": "demo/1.jpg",
+          "type": "image", 
+          "mode": "coloriage",
+          "image_path": "doodle/x.jpg",
           "position": {"x": 0, "y": 0},
           "z_index": 1,
-          "skip_rate": 10,
-          "camera": {
-            "zoom": 2.0,
-            "position": {"x": 0.5, "y": 0.5}
-          },
-          "animation": {
-            "type": "zoom_out",
-            "duration": 2.5,
-            "start_zoom": 2.0,
-            "end_zoom": 1.0,
-            "focus_position": {"x": 0.5, "y": 0.5}
-          }
+          "skip_rate": 50
         }
       ]
     }

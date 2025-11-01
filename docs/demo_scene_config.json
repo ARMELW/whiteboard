@@ -1,0 +1,100 @@
+{
+  "scene_width": 1920,
+  "scene_height": 1080,
+  "background": "#F0F8FF",
+  "sceneCameras": [
+    {
+      "id": "main_camera",
+      "width": 1920,
+      "height": 1080,
+      "position": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "isDefault": true
+    }
+  ],
+  "layers": [
+    {
+      "id": "title",
+      "type": "text",
+      "text_config": {
+        "text": "Scene from JSON",
+        "font": "Arial",
+        "size": 72,
+        "color": [
+          30,
+          80,
+          150
+        ],
+        "style": "bold",
+        "align": "center"
+      },
+      "position": {
+        "x": 960,
+        "y": 300
+      },
+      "z_index": 2
+    },
+    {
+      "id": "shape1",
+      "type": "shape",
+      "shape_config": {
+        "shape": "rectangle",
+        "color": [
+          100,
+          100,
+          200
+        ],
+        "fill_color": [
+          200,
+          200,
+          255
+        ],
+        "stroke_width": 4,
+        "position": {
+          "x": 600,
+          "y": 600
+        },
+        "width": 300,
+        "height": 200
+      },
+      "position": {
+        "x": 600,
+        "y": 600
+      },
+      "z_index": 1,
+      "scale": 1.0,
+      "opacity": 0.9
+    },
+    {
+      "id": "shape2",
+      "type": "shape",
+      "shape_config": {
+        "shape": "circle",
+        "color": [
+          200,
+          100,
+          100
+        ],
+        "fill_color": [
+          255,
+          200,
+          200
+        ],
+        "stroke_width": 4,
+        "position": {
+          "x": 1320,
+          "y": 600
+        },
+        "size": 100
+      },
+      "position": {
+        "x": 1320,
+        "y": 600
+      },
+      "z_index": 1,
+      "opacity": 0.9
+    }
+  ]
+}

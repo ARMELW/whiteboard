@@ -2,8 +2,9 @@
   "fonts": {
     "Pacifico": {
       "normal": "fonts/Pacifico/Pacifico-Regular.ttf"
+    },
+    "Bebas Neue":  {
+      "normal": "fonts/Bebas_Neue/BebasNeue-Regular.ttf"
     }
-  },
-  "_comment": "Font configuration file - maps font names to .ttf files",
-  "_usage": "Add new fonts by adding entries like: 'FontName': {'normal': 'path/to/font.ttf', 'bold': 'path/to/font-bold.ttf', 'italic': 'path/to/font-italic.ttf', 'bold italic': 'path/to/font-bolditalic.ttf'}"
+  }
 }
