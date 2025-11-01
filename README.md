@@ -542,7 +542,7 @@ Le système extrait automatiquement:
 - `svg_path`: Chemin vers le fichier SVG (requis)
 - `svg_sampling_rate`: Densité des points (défaut: 10)
 - `svg_num_points`: Nombre maximum de points (optionnel)
-- `svg_reverse`: Inverser la direction (défaut: false)
+- `svg_reverse`: Contrôle le point de départ de l'animation - false = début du chemin, true = fin du chemin (défaut: false)
 
 Voir [SHAPE_FROM_SVG_GUIDE.md](SHAPE_FROM_SVG_GUIDE.md) pour plus de détails.
 
