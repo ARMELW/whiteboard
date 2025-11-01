@@ -99,7 +99,7 @@ def test_font_family_layers():
                 "z_index": 1,
                 "text_config": {
                     "text": "Font Family Test",
-                    "font": available_fonts[0][0],
+                    "font": available_fonts[0][1],
                     "size": 48,
                     "style": "bold",
                     "color": [0, 0, 139],  # Dark blue

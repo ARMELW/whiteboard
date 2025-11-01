@@ -23,7 +23,8 @@
           },
           "text_config": {
             "text": "Votre texte ici\nleka wa",
-            "font": "Arial",
+            "font": "Pacifico",
+            "font_path": "../fonts/Pacifico/Pacifico-Regular.ttf",
             "size": 55,
             "style": "normal",
             "color": [
