@@ -84,7 +84,10 @@ def test_coloriage_mode():
     
     # Run whiteboard animator with the test config
     print("\n▶️  Running whiteboard animator with coloriage mode...")
-    cmd = f"python3 /home/runner/work/whiteboard/whiteboard/whiteboard_animator.py --config {config_path}"
+    # Get the script directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    animator_script = os.path.join(script_dir, "whiteboard_animator.py")
+    cmd = f"{sys.executable} {animator_script} --config {config_path}"
     
     import subprocess
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -154,7 +157,9 @@ def test_all_modes_comparison():
             json.dump(config, f, indent=2)
         
         import subprocess
-        cmd = f"python3 /home/runner/work/whiteboard/whiteboard/whiteboard_animator.py --config {config_path}"
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        animator_script = os.path.join(script_dir, "whiteboard_animator.py")
+        cmd = f"{sys.executable} {animator_script} --config {config_path}"
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         
         output_video = f"/tmp/test_{mode}_output.mp4"

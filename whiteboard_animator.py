@@ -3050,7 +3050,8 @@ def draw_flood_fill(
         # Animate filling this region progressively
         # Sample points within the region to animate
         num_pixels = len(region_pixels[0])
-        sample_interval = max(1, num_pixels // 20)  # Sample about 20 points per region
+        FLOOD_FILL_SAMPLES_PER_REGION = 20  # Number of animation points per region
+        sample_interval = max(1, num_pixels // FLOOD_FILL_SAMPLES_PER_REGION)
         
         for i in range(0, num_pixels, sample_interval):
             # Get pixel coordinates
@@ -3144,13 +3145,13 @@ def draw_coloriage(
     pixel_coords.sort(key=lambda p: (p[0], p[1]))  # Sort by y, then x
     
     # Group pixels into horizontal bands for smoother coloring animation
-    band_height = 5  # Color in bands of 5 pixels height
+    COLORIAGE_BAND_HEIGHT = 5  # Color in bands of 5 pixels height
     bands = []
     current_band = []
     current_y = -1
     
     for y, x in pixel_coords:
-        band_index = y // band_height
+        band_index = y // COLORIAGE_BAND_HEIGHT
         if band_index != current_y:
             if current_band:
                 bands.append(current_band)
@@ -3168,10 +3169,13 @@ def draw_coloriage(
     total_pixels_colored = 0
     
     # Process bands in chunks for efficiency
+    COLORIAGE_MIN_SEGMENT_SIZE = 5  # Minimum pixels per segment
+    COLORIAGE_SEGMENTS_PER_BAND = 10  # Target number of segments per band
+    
     for band_idx, band in enumerate(bands):
         # Calculate how many segments to break this band into (for animation smoothness)
         band_size = len(band)
-        segment_size = max(5, band_size // 10)  # Break each band into ~10 segments
+        segment_size = max(COLORIAGE_MIN_SEGMENT_SIZE, band_size // COLORIAGE_SEGMENTS_PER_BAND)
         
         for segment_start in range(0, band_size, segment_size):
             segment_end = min(segment_start + segment_size, band_size)

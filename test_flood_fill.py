@@ -91,7 +91,10 @@ def test_flood_fill_mode():
     
     # Run whiteboard animator with the test config
     print("\n▶️  Running whiteboard animator with flood fill mode...")
-    cmd = f"python3 /home/runner/work/whiteboard/whiteboard/whiteboard_animator.py --config {config_path}"
+    # Get the script directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    animator_script = os.path.join(script_dir, "whiteboard_animator.py")
+    cmd = f"{sys.executable} {animator_script} --config {config_path}"
     
     import subprocess
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -140,7 +143,10 @@ def test_flood_fill_vs_draw_mode():
     with open(config_draw, 'w') as f:
         json.dump(config, f, indent=2)
     
-    cmd_draw = f"python3 /home/runner/work/whiteboard/whiteboard/whiteboard_animator.py --config {config_draw}"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    animator_script = os.path.join(script_dir, "whiteboard_animator.py")
+    
+    cmd_draw = f"{sys.executable} {animator_script} --config {config_draw}"
     result_draw = subprocess.run(cmd_draw, shell=True, capture_output=True, text=True)
     
     # Test with flood_fill mode
@@ -148,7 +154,7 @@ def test_flood_fill_vs_draw_mode():
     output_flood = "/tmp/test_flood_fill_mode_output.mp4"
     config_flood = create_test_config(test_image_path, output_flood)
     
-    cmd_flood = f"python3 /home/runner/work/whiteboard/whiteboard/whiteboard_animator.py --config {config_flood}"
+    cmd_flood = f"{sys.executable} {animator_script} --config {config_flood}"
     result_flood = subprocess.run(cmd_flood, shell=True, capture_output=True, text=True)
     
     # Compare results
