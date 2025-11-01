@@ -106,13 +106,14 @@ def extract_svg_colors(svg_path):
     return colors if (colors['fill'] or colors['stroke']) else None
 
 
-def extract_from_svg(svg_path, sampling_rate=5):
+def extract_from_svg(svg_path, sampling_rate=5, reverse=False):
     """
     Extract points from all SVG paths.
     
     Args:
         svg_path: Path to the SVG file
         sampling_rate: Sampling rate for point extraction (pixels between points)
+        reverse: Reverse the order of points
         
     Returns:
         List of points [{"x": ..., "y": ...}, ...]
@@ -162,6 +163,12 @@ def extract_from_svg(svg_path, sampling_rate=5):
             print(f"  Extraction du path {i+1}...")
             points = parse_svg_path(path_data, sampling_rate)
             all_points.extend(points)
+    
+    # Reverse the order of points if requested
+    # This changes the drawing direction from start-to-end to end-to-start
+    # Useful for: drawing arrows backwards, reversing signature direction, etc.
+    if reverse:
+        all_points = all_points[::-1]
     
     return all_points
 
@@ -230,7 +237,7 @@ def extract_path_points(file_path, sampling_rate=5, reverse=False):
     print(f"  Format détecté: {ext}")
     
     if ext == '.svg':
-        points = extract_from_svg(file_path, sampling_rate)
+        points = extract_from_svg(file_path, sampling_rate, reverse)
     elif ext in ['.png', '.jpg', '.jpeg']:
         points = extract_from_png(file_path, sampling_rate, reverse)
     else:
