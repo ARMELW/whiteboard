@@ -114,6 +114,15 @@ WHITE_RATIO_THRESHOLD = 0.7  # Ratio of white pixels to determine if image is te
 SYNTHETIC_BOLD_STROKE_DIVISOR = 20  # Divide font size by this to get stroke width for bold
 SYNTHETIC_ITALIC_SHEAR_ANGLE = -15  # Shear angle in degrees for italic effect (negative = rightward slant)
 
+# Path follow animation constants
+PATH_FOLLOW_PIXEL_THRESHOLD = 250  # Pixel intensity threshold for path detection (0-255, higher = lighter)
+PATH_FOLLOW_VERTICAL_BAND_SIZE = 50  # Vertical band height in pixels for natural path ordering
+PATH_FOLLOW_DRAW_RADIUS = 2  # Radius in pixels around each path point to draw
+PATH_FOLLOW_PROGRESS_INTERVAL = 500  # Number of points between progress reports
+PATH_FOLLOW_DEFAULT_JITTER = 2.0  # Default hand jitter amount in pixels
+PATH_FOLLOW_DEFAULT_SPEED_VARIATION = 0.2  # Default speed variation (0-1, where 0.2 = 20%)
+PATH_FOLLOW_DEFAULT_SAMPLING = 2  # Default point sampling rate (sample every Nth point)
+
 # Font configuration cache
 _FONT_CONFIG_CACHE = None
 _FONT_CONFIG_PATH = None
@@ -3262,7 +3271,7 @@ def extract_path_points(img_thresh, object_mask=None, sampling_rate=1):
     
     # Find contours in the image
     contours, _ = cv2.findContours(
-        (img_to_process < 250).astype(np.uint8),
+        (img_to_process < PATH_FOLLOW_PIXEL_THRESHOLD).astype(np.uint8),
         cv2.RETR_EXTERNAL,
         cv2.CHAIN_APPROX_NONE  # Get all points
     )
@@ -3280,8 +3289,9 @@ def extract_path_points(img_thresh, object_mask=None, sampling_rate=1):
         path_points = path_points[::sampling_rate]
     
     # Sort points to create a drawing path (left to right, top to bottom)
-    # This creates a more natural drawing order
-    path_points.sort(key=lambda p: (p[1] // 50, p[0]))  # Group by vertical bands, then sort horizontally
+    # Group by vertical bands (PATH_FOLLOW_VERTICAL_BAND_SIZE pixels each),
+    # then sort horizontally within each band for natural drawing order
+    path_points.sort(key=lambda p: (p[1] // PATH_FOLLOW_VERTICAL_BAND_SIZE, p[0]))
     
     return path_points
 
@@ -3289,7 +3299,9 @@ def extract_path_points(img_thresh, object_mask=None, sampling_rate=1):
 def draw_path_follow(
     variables, object_mask=None, skip_rate=5, black_pixel_threshold=10,
     eraser=None, eraser_mask_inv=None, eraser_ht=0, eraser_wd=0,
-    jitter_amount=2.0, speed_variation=0.2, point_sampling=2
+    jitter_amount=PATH_FOLLOW_DEFAULT_JITTER, 
+    speed_variation=PATH_FOLLOW_DEFAULT_SPEED_VARIATION, 
+    point_sampling=PATH_FOLLOW_DEFAULT_SAMPLING
 ):
     """
     Draw animation following path points sequentially with natural hand movement.
@@ -3343,9 +3355,9 @@ def draw_path_follow(
         
         # Draw a small region around this point
         # This simulates drawing as the hand moves
-        radius = 2  # Small radius for natural stroke
-        for dy in range(-radius, radius + 1):
-            for dx in range(-radius, radius + 1):
+        # Using PATH_FOLLOW_DRAW_RADIUS for consistent stroke appearance
+        for dy in range(-PATH_FOLLOW_DRAW_RADIUS, PATH_FOLLOW_DRAW_RADIUS + 1):
+            for dx in range(-PATH_FOLLOW_DRAW_RADIUS, PATH_FOLLOW_DRAW_RADIUS + 1):
                 draw_x = px + dx
                 draw_y = py + dy
                 
@@ -3354,7 +3366,7 @@ def draw_path_follow(
                     0 <= draw_y < variables.resize_ht):
                     
                     # Check if this pixel should be drawn (is part of the drawing)
-                    if variables.img_thresh[draw_y, draw_x] < 250:
+                    if variables.img_thresh[draw_y, draw_x] < PATH_FOLLOW_PIXEL_THRESHOLD:
                         # Copy from original image
                         variables.drawn_frame[draw_y, draw_x] = variables.img[draw_y, draw_x]
                         drawn_points.add((draw_x, draw_y))
@@ -3420,13 +3432,13 @@ def draw_path_follow(
                 variables.animation_data["frames_written"].append(frame_data)
         
         # Progress indicator
-        if idx > 0 and idx % 500 == 0:
+        if idx > 0 and idx % PATH_FOLLOW_PROGRESS_INTERVAL == 0:
             progress = (idx / len(path_points)) * 100
             print(f"  Path follow: {progress:.1f}% ({idx}/{len(path_points)} points)")
     
     # After drawing all points, overlay the complete colored image
     # Only overlay where the current layer has content (non-white pixels)
-    content_mask = np.any(variables.img < 250, axis=2)
+    content_mask = np.any(variables.img < PATH_FOLLOW_PIXEL_THRESHOLD, axis=2)
     variables.drawn_frame[content_mask] = variables.img[content_mask]
     
     print(f"  ✅ Path follow complete: {len(path_points)} points traced")
