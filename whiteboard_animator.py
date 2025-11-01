@@ -2988,6 +2988,245 @@ def draw_text_handwriting(
         variables.drawn_frame[content_mask] = variables.img[content_mask]
 
 
+def draw_flood_fill(
+    variables, object_mask=None, skip_rate=5, black_pixel_threshold=10
+):
+    """
+    Implémente l'animation de remplissage de type "flood fill".
+    Identifie les régions connectées et les remplit progressivement avec la main.
+    
+    Args:
+        variables: AllVariables object with image data
+        object_mask: Optional mask to restrict drawing area
+        skip_rate: Frame skip rate for animation speed
+        black_pixel_threshold: Threshold for detecting content pixels
+    """
+    # Create a grayscale thresholded copy for finding regions
+    img_thresh_copy = variables.img_thresh.copy()
+    if object_mask is not None:
+        object_mask_black_ind = np.where(object_mask == 0)
+        img_thresh_copy[object_mask_black_ind] = 255
+    
+    # Find all content pixels (below threshold = black/dark pixels)
+    content_pixels = np.where(img_thresh_copy < black_pixel_threshold)
+    
+    if len(content_pixels[0]) == 0:
+        # No content to fill
+        return
+    
+    # Create a binary mask of content
+    binary_mask = (img_thresh_copy < black_pixel_threshold).astype(np.uint8)
+    
+    # Find connected components (regions)
+    num_labels, labels = cv2.connectedComponents(binary_mask)
+    
+    # Collect regions (skip label 0 which is background)
+    regions = []
+    for label in range(1, num_labels):
+        region_pixels = np.where(labels == label)
+        if len(region_pixels[0]) > 0:
+            # Calculate centroid of region
+            centroid_y = int(np.mean(region_pixels[0]))
+            centroid_x = int(np.mean(region_pixels[1]))
+            regions.append({
+                'label': label,
+                'pixels': region_pixels,
+                'centroid': (centroid_y, centroid_x),
+                'size': len(region_pixels[0])
+            })
+    
+    # Sort regions by position (top to bottom, left to right)
+    regions.sort(key=lambda r: (r['centroid'][0], r['centroid'][1]))
+    
+    print(f"  🎨 Flood fill mode: found {len(regions)} regions to fill")
+    
+    counter = 0
+    current_pos = None
+    
+    for region_idx, region in enumerate(regions):
+        region_pixels = region['pixels']
+        centroid_y, centroid_x = region['centroid']
+        
+        # Animate filling this region progressively
+        # Sample points within the region to animate
+        num_pixels = len(region_pixels[0])
+        FLOOD_FILL_SAMPLES_PER_REGION = 20  # Number of animation points per region
+        sample_interval = max(1, num_pixels // FLOOD_FILL_SAMPLES_PER_REGION)
+        
+        for i in range(0, num_pixels, sample_interval):
+            # Get pixel coordinates
+            y = region_pixels[0][i]
+            x = region_pixels[1][i]
+            
+            # Fill in all pixels of this region up to current point
+            # Create a temporary mask for pixels filled so far
+            pixels_to_fill = min(i + sample_interval, num_pixels)
+            y_coords = region_pixels[0][:pixels_to_fill]
+            x_coords = region_pixels[1][:pixels_to_fill]
+            
+            # Apply the colored image at these coordinates
+            variables.drawn_frame[y_coords, x_coords] = variables.img[y_coords, x_coords]
+            
+            # Position hand at current pixel
+            hand_coord_x = x
+            hand_coord_y = y
+            
+            # Draw the hand at this position
+            drawn_frame_with_hand = draw_hand_on_img(
+                variables.drawn_frame.copy(),
+                variables.hand.copy(),
+                hand_coord_x,
+                hand_coord_y,
+                variables.hand_mask_inv.copy(),
+                variables.hand_ht,
+                variables.hand_wd,
+                variables.resize_ht,
+                variables.resize_wd,
+            )
+            
+            counter += 1
+            if counter % skip_rate == 0:
+                # Apply watermark if specified
+                if variables.watermark_path:
+                    drawn_frame_with_hand = apply_watermark(
+                        drawn_frame_with_hand,
+                        variables.watermark_path,
+                        variables.watermark_position,
+                        variables.watermark_opacity,
+                        variables.watermark_scale
+                    )
+                
+                variables.video_object.write(drawn_frame_with_hand)
+                variables.frames_written += 1
+            
+            current_pos = (y, x)
+        
+        # Ensure region is completely filled
+        variables.drawn_frame[region_pixels[0], region_pixels[1]] = variables.img[region_pixels[0], region_pixels[1]]
+        
+        if (region_idx + 1) % 10 == 0:
+            print(f"  Régions remplies: {region_idx + 1}/{len(regions)}")
+    
+    print(f"  ✅ Flood fill terminé: {len(regions)} régions remplies")
+
+
+def draw_coloriage(
+    variables, object_mask=None, skip_rate=5, black_pixel_threshold=10
+):
+    """
+    Implémente l'animation de coloriage (coloring with hand).
+    Remplit l'image progressivement avec les couleurs, comme si on coloriait avec des crayons/marqueurs.
+    La main se déplace en suivant un pattern de coloriage naturel (gauche à droite, haut en bas).
+    
+    Args:
+        variables: AllVariables object with image data
+        object_mask: Optional mask to restrict drawing area
+        skip_rate: Frame skip rate for animation speed
+        black_pixel_threshold: Threshold for detecting content pixels
+    """
+    # Create a grayscale thresholded copy for finding content
+    img_thresh_copy = variables.img_thresh.copy()
+    if object_mask is not None:
+        object_mask_black_ind = np.where(object_mask == 0)
+        img_thresh_copy[object_mask_black_ind] = 255
+    
+    # Find all content pixels (below threshold = black/dark pixels)
+    content_pixels = np.where(img_thresh_copy < black_pixel_threshold)
+    
+    if len(content_pixels[0]) == 0:
+        # No content to color
+        return
+    
+    print(f"  🎨 Coloriage mode: {len(content_pixels[0])} pixels à colorier")
+    
+    # Create a list of pixel coordinates sorted for natural coloring pattern
+    # Sort by row first (top to bottom), then by column (left to right) within each row
+    pixel_coords = list(zip(content_pixels[0], content_pixels[1]))
+    pixel_coords.sort(key=lambda p: (p[0], p[1]))  # Sort by y, then x
+    
+    # Group pixels into horizontal bands for smoother coloring animation
+    COLORIAGE_BAND_HEIGHT = 5  # Color in bands of 5 pixels height
+    bands = []
+    current_band = []
+    current_y = -1
+    
+    for y, x in pixel_coords:
+        band_index = y // COLORIAGE_BAND_HEIGHT
+        if band_index != current_y:
+            if current_band:
+                bands.append(current_band)
+            current_band = [(y, x)]
+            current_y = band_index
+        else:
+            current_band.append((y, x))
+    
+    if current_band:
+        bands.append(current_band)
+    
+    print(f"  📊 Organisé en {len(bands)} bandes de coloriage")
+    
+    counter = 0
+    total_pixels_colored = 0
+    
+    # Process bands in chunks for efficiency
+    COLORIAGE_MIN_SEGMENT_SIZE = 5  # Minimum pixels per segment
+    COLORIAGE_SEGMENTS_PER_BAND = 10  # Target number of segments per band
+    
+    for band_idx, band in enumerate(bands):
+        # Calculate how many segments to break this band into (for animation smoothness)
+        band_size = len(band)
+        segment_size = max(COLORIAGE_MIN_SEGMENT_SIZE, band_size // COLORIAGE_SEGMENTS_PER_BAND)
+        
+        for segment_start in range(0, band_size, segment_size):
+            segment_end = min(segment_start + segment_size, band_size)
+            segment = band[segment_start:segment_end]
+            
+            # Color all pixels in this segment at once
+            for y, x in segment:
+                variables.drawn_frame[y, x] = variables.img[y, x]
+                total_pixels_colored += 1
+            
+            # Place hand at the middle of the segment
+            if segment:
+                mid_idx = len(segment) // 2
+                hand_coord_y, hand_coord_x = segment[mid_idx]
+                
+                # Draw the hand at this position
+                drawn_frame_with_hand = draw_hand_on_img(
+                    variables.drawn_frame.copy(),
+                    variables.hand.copy(),
+                    hand_coord_x,
+                    hand_coord_y,
+                    variables.hand_mask_inv.copy(),
+                    variables.hand_ht,
+                    variables.hand_wd,
+                    variables.resize_ht,
+                    variables.resize_wd,
+                )
+                
+                counter += 1
+                if counter % skip_rate == 0:
+                    # Apply watermark if specified
+                    if variables.watermark_path:
+                        drawn_frame_with_hand = apply_watermark(
+                            drawn_frame_with_hand,
+                            variables.watermark_path,
+                            variables.watermark_position,
+                            variables.watermark_opacity,
+                            variables.watermark_scale
+                        )
+                    
+                    variables.video_object.write(drawn_frame_with_hand)
+                    variables.frames_written += 1
+        
+        # Progress reporting
+        if (band_idx + 1) % 20 == 0:
+            progress = (total_pixels_colored / len(pixel_coords)) * 100
+            print(f"  Coloriage: {progress:.1f}% ({total_pixels_colored}/{len(pixel_coords)} pixels)")
+    
+    print(f"  ✅ Coloriage terminé: {total_pixels_colored} pixels coloriés")
+
+
 def draw_masked_object(
     variables, object_mask=None, skip_rate=5, black_pixel_threshold=10, mode='draw', 
     eraser=None, eraser_mask_inv=None, eraser_ht=0, eraser_wd=0
@@ -2998,12 +3237,22 @@ def draw_masked_object(
     et enregistre la trame.
     
     Args:
-        mode: 'draw' for normal drawing with hand, 'eraser' for eraser mode, 'static' for no animation
+        mode: 'draw' for normal drawing with hand, 'eraser' for eraser mode, 'flood_fill' for flood fill mode, 'coloriage' for coloring mode, 'static' for no animation
         eraser: Eraser image (for eraser mode)
         eraser_mask_inv: Inverted eraser mask (for eraser mode)
         eraser_ht, eraser_wd: Eraser dimensions
     """
     # print("Skip Rate: ", skip_rate)
+    
+    # For flood_fill mode, use the dedicated flood fill function
+    if mode == 'flood_fill':
+        draw_flood_fill(variables, object_mask, skip_rate, black_pixel_threshold)
+        return
+    
+    # For coloriage mode, use the dedicated coloriage function
+    if mode == 'coloriage':
+        draw_coloriage(variables, object_mask, skip_rate, black_pixel_threshold)
+        return
     
     # For eraser mode, start with the full image visible
     if mode == 'eraser':
@@ -3627,6 +3876,62 @@ def draw_layered_whiteboard_animations(
                         eraser_mask_inv=eraser_mask_inv,
                         eraser_ht=eraser_ht,
                         eraser_wd=eraser_wd
+                    )
+            elif layer_mode == 'flood_fill':
+                # Mode flood fill: remplir les régions progressivement
+                print(f"    🎨 Mode flood fill")
+                # Only tile-based for images (text doesn't support flood fill yet)
+                if layer_type == 'text':
+                    print(f"    ⚠️  Flood fill not supported for text layers, using handwriting instead")
+                    text_config = layer.get('text_config', {})
+                    text_animation_type = text_config.get('animation_type', 'handwriting')
+                    
+                    if text_animation_type == 'svg_path' or text_config.get('use_svg_paths', False):
+                        draw_svg_path_handwriting(
+                            variables=layer_vars,
+                            skip_rate=layer_skip_rate,
+                            mode='draw',
+                            text_config=text_config
+                        )
+                    else:
+                        draw_text_handwriting(
+                            variables=layer_vars,
+                            skip_rate=layer_skip_rate,
+                            mode='draw'
+                        )
+                else:
+                    draw_masked_object(
+                        variables=layer_vars,
+                        skip_rate=layer_skip_rate,
+                        mode='flood_fill'
+                    )
+            elif layer_mode == 'coloriage':
+                # Mode coloriage: colorier progressivement
+                print(f"    🖍️  Mode coloriage")
+                # Only tile-based for images (text doesn't support coloriage yet)
+                if layer_type == 'text':
+                    print(f"    ⚠️  Coloriage not supported for text layers, using handwriting instead")
+                    text_config = layer.get('text_config', {})
+                    text_animation_type = text_config.get('animation_type', 'handwriting')
+                    
+                    if text_animation_type == 'svg_path' or text_config.get('use_svg_paths', False):
+                        draw_svg_path_handwriting(
+                            variables=layer_vars,
+                            skip_rate=layer_skip_rate,
+                            mode='draw',
+                            text_config=text_config
+                        )
+                    else:
+                        draw_text_handwriting(
+                            variables=layer_vars,
+                            skip_rate=layer_skip_rate,
+                            mode='draw'
+                        )
+                else:
+                    draw_masked_object(
+                        variables=layer_vars,
+                        skip_rate=layer_skip_rate,
+                        mode='coloriage'
                     )
             else:
                 # Mode normal: dessiner avec la main

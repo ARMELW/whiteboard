@@ -19,6 +19,9 @@ Ce guide de 2800+ lignes couvre :
 ## Fonctionnalités
 
 - ✅ Génération de vidéos d'animation de dessin à partir d'images
+- ✅ **🆕 Modes d'Animation Multiples** - Draw, Erase, Flood Fill, Coloriage (NOUVEAU!)
+- ✅ **🆕 Mode Flood Fill** - Remplissage progressif par régions connectées (NOUVEAU!)
+- ✅ **🆕 Mode Coloriage** - Coloriage progressif ligne par ligne pour un effet artistique (NOUVEAU!)
 - ✅ **🆕 Configuration de Polices Simplifiée** - Système de configuration centralisé pour les polices (NOUVEAU!)
 - ✅ **🆕 Effets de Particules** - Confettis, étincelles, explosions, fumée, magie (NOUVEAU!)
 - ✅ **🆕 Support Audio Complet** - Musique de fond, effets sonores, voix off, sons auto-générés (NOUVEAU!)
@@ -42,6 +45,43 @@ Ce guide de 2800+ lignes couvre :
 - ✅ Export JSON des données d'animation
 - ✅ Support de plusieurs formats d'image
 - ✅ Animation avec main réaliste
+
+### 🎨 Modes d'Animation Multiples (NOUVEAU!)
+
+Choisissez parmi **cinq styles d'animation** pour créer vos vidéos :
+
+| Mode | Description | Vitesse | Idéal pour |
+|------|-------------|---------|------------|
+| **`draw`** | Dessin tile par tile classique | Moyenne | Dessins détaillés, illustrations |
+| **`erase`** | Effacement tile par tile | Moyenne | Effets de révélation inverse |
+| **`flood_fill`** | Remplissage par régions connectées | Rapide | Logos, icônes, formes simples |
+| **`coloriage`** | Coloriage progressif ligne par ligne | Lente | Dessins à colorier, art coloré |
+| **`static`** | Affichage instantané | Instantanée | Watermarks, logos statiques |
+
+**Exemple de configuration :**
+```json
+{
+  "layers": [
+    {
+      "image_path": "drawing.png",
+      "mode": "draw",
+      "skip_rate": 5
+    },
+    {
+      "image_path": "colors.png",
+      "mode": "coloriage",
+      "skip_rate": 3
+    },
+    {
+      "image_path": "highlights.png",
+      "mode": "flood_fill",
+      "skip_rate": 3
+    }
+  ]
+}
+```
+
+**Documentation complète:** Voir [FLOOD_FILL_GUIDE.md](FLOOD_FILL_GUIDE.md)
 
 ### 🔤 Configuration de Polices Simplifiée (NOUVEAU!)
 
