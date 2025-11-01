@@ -4485,22 +4485,30 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
                     print(f"    📝 Rendering text layer: \"{text_content}...\" {config_display}")
                 # Pass layer position and anchor_point to text rendering if not already in text_config
                 text_config_for_render = text_config.copy()
-                if 'position' not in text_config_for_render:
-                    layer_position = layer.get('position', None)
-                    if layer_position:
-                        # Scale position by zoom to match the zoomed scene canvas
-                        text_config_for_render['position'] = {
-                            'x': int(layer_position.get('x', 0) * zoom),
-                            'y': int(layer_position.get('y', 0) * zoom)
-                        }
+                # Only apply zoom transformations if zoom != 1.0
+                if zoom != 1.0:
+                    if 'position' not in text_config_for_render:
+                        layer_position = layer.get('position', None)
+                        if layer_position:
+                            # Scale position by zoom to match the zoomed scene canvas
+                            text_config_for_render['position'] = {
+                                'x': int(layer_position.get('x', 0) * zoom),
+                                'y': int(layer_position.get('y', 0) * zoom)
+                            }
+                    # Scale font size by zoom to render crisp text instead of scaling later
+                    if 'size' in text_config_for_render and text_config_for_render['size'] > 0:
+                        text_config_for_render['size'] = int(text_config_for_render['size'] * zoom)
+                else:
+                    # No zoom, just pass position without scaling
+                    if 'position' not in text_config_for_render:
+                        layer_position = layer.get('position', None)
+                        if layer_position:
+                            text_config_for_render['position'] = layer_position
                 if 'anchor_point' not in text_config_for_render:
                     text_config_for_render['anchor_point'] = layer.get('anchor_point', 'top-left')
-                # Scale font size by zoom to render crisp text instead of scaling later
-                if 'size' in text_config_for_render:
-                    text_config_for_render['size'] = int(text_config_for_render['size'] * zoom)
                 # Render text to zoomed scene size to avoid blurry scaling
-                zoomed_scene_width = int(scene_width * zoom)
-                zoomed_scene_height = int(scene_height * zoom)
+                zoomed_scene_width = int(scene_width * zoom) if zoom != 1.0 else scene_width
+                zoomed_scene_height = int(scene_height * zoom) if zoom != 1.0 else scene_height
                 layer_img = render_text_to_image(text_config_for_render, zoomed_scene_width, zoomed_scene_height)
                 
             elif layer_type == 'shape':
