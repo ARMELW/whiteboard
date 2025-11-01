@@ -3367,20 +3367,25 @@ def draw_path_follow(
     # Check if we have predefined path points from config
     if path_config:
         # Support both formats: array directly or object with 'points' key
-        if isinstance(path_config, list):
-            # Direct array format: [{"x": 1, "y": 2}, ...]
-            print(f"  🎨 Path follow mode: using predefined path points from config (array format)...")
-            path_points = [(p['x'], p['y']) for p in path_config]
-            print(f"  📍 Using {len(path_points)} predefined path points")
-        elif isinstance(path_config, dict) and 'points' in path_config:
-            # Object format: {"points": [{"x": 1, "y": 2}, ...]}
-            print(f"  🎨 Path follow mode: using predefined path points from config (object format)...")
-            path_points = [(p['x'], p['y']) for p in path_config['points']]
-            print(f"  📍 Using {len(path_points)} predefined path points")
-        else:
-            # Invalid format, fall through to image extraction
-            config_type = type(path_config).__name__
-            print(f"  ⚠️ Invalid path_config format (received {config_type}), falling back to image extraction")
+        try:
+            if isinstance(path_config, list):
+                # Direct array format: [{"x": 1, "y": 2}, ...]
+                print(f"  🎨 Path follow mode: using predefined path points from config (array format)...")
+                path_points = [(p['x'], p['y']) for p in path_config]
+                print(f"  📍 Using {len(path_points)} predefined path points")
+            elif isinstance(path_config, dict) and 'points' in path_config:
+                # Object format: {"points": [{"x": 1, "y": 2}, ...]}
+                print(f"  🎨 Path follow mode: using predefined path points from config (object format)...")
+                path_points = [(p['x'], p['y']) for p in path_config['points']]
+                print(f"  📍 Using {len(path_points)} predefined path points")
+            else:
+                # Invalid format, fall through to image extraction
+                config_type = type(path_config).__name__
+                print(f"  ⚠️ Invalid path_config format (received {config_type}), falling back to image extraction")
+                path_config = None
+        except (KeyError, TypeError) as e:
+            # Malformed point data (missing 'x' or 'y' keys, or wrong type)
+            print(f"  ⚠️ Malformed path_config data ({e}), falling back to image extraction")
             path_config = None
     
     if not path_config:

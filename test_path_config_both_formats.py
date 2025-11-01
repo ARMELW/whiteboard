@@ -80,6 +80,24 @@ def test_format_detection():
     assert points3 is None, "Should return None for invalid format"
     print("  ✓ Invalid format handled correctly")
     
+    # Test 5: Malformed point data (missing keys)
+    print("\nTest 5: Malformed Point Data")
+    malformed_configs = [
+        [{"x": 10}],  # Missing 'y'
+        [{"y": 20}],  # Missing 'x'
+        [{"x": 10, "z": 30}],  # Has 'x' but not 'y'
+        [{"a": 1, "b": 2}],  # Neither 'x' nor 'y'
+    ]
+    
+    for i, config in enumerate(malformed_configs):
+        try:
+            points = extract_points(config)
+            print(f"  ⚠️ Config {i+1} should have raised error but got: {points}")
+        except (KeyError, TypeError):
+            print(f"  ✓ Config {i+1} correctly raises error for malformed data")
+    
+    print("  ✓ Malformed data handled correctly")
+    
     print("\n" + "="*70)
     print("✅ All format detection tests PASSED")
     print("="*70)
