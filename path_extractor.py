@@ -46,6 +46,66 @@ def parse_svg_path(path_data, sampling_rate=5):
     return points
 
 
+def extract_svg_colors(svg_path):
+    """
+    Extrait les couleurs de remplissage et de contour d'un SVG.
+    
+    Returns:
+        dict: {'fill': color, 'stroke': color} ou None si pas de couleurs
+    """
+    tree = ET.parse(svg_path)
+    root = tree.getroot()
+    
+    colors = {'fill': None, 'stroke': None}
+    
+    # Chercher tous les éléments <path>
+    paths = []
+    for ns in ['svg:path', 'path', './/path', './/{http://www.w3.org/2000/svg}path']:
+        try:
+            paths = root.findall(ns, {'svg': 'http://www.w3.org/2000/svg'})
+            if paths:
+                break
+        except:
+            continue
+    
+    if not paths:
+        paths = root.findall('.//path')
+    
+    if not paths:
+        for elem in root.iter():
+            if elem.tag.endswith('path'):
+                paths.append(elem)
+    
+    # Extraire les couleurs du premier path
+    if paths:
+        path_elem = paths[0]
+        
+        # Chercher fill
+        fill = path_elem.get('fill')
+        if fill and fill != 'none':
+            colors['fill'] = fill
+        
+        # Chercher stroke
+        stroke = path_elem.get('stroke')
+        if stroke and stroke != 'none':
+            colors['stroke'] = stroke
+        
+        # Chercher dans le style
+        style = path_elem.get('style', '')
+        if style:
+            for prop in style.split(';'):
+                if ':' in prop:
+                    key, value = prop.split(':', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    if key == 'fill' and value != 'none':
+                        colors['fill'] = value
+                    elif key == 'stroke' and value != 'none':
+                        colors['stroke'] = value
+    
+    return colors if (colors['fill'] or colors['stroke']) else None
+
+
 def extract_from_svg(svg_path, sampling_rate=5):
     """
     Extrait les points de tous les paths SVG.
@@ -201,13 +261,45 @@ def analyze_endpoints(file_path):
     print(f"  En bas à droite: x={max(xs)}, y={max(ys)}")
 
 
-def save_path_config(points, output_file="path_config.json", comment=""):
+def save_path_config(points, output_file="path_config.json", comment="", colors=None, num_points=None, reversed_path=False):
     """
-    Sauvegarde les points au format JSON.
+    Sauvegarde les points au format JSON avec configuration de shape.
+    
+    Args:
+        points: Liste de points [{"x": ..., "y": ...}, ...]
+        output_file: Fichier de sortie
+        comment: Commentaire à ajouter
+        colors: Dict avec 'fill' et 'stroke' colors du SVG
+        num_points: Nombre de points extraits (pour référence)
+        reversed_path: Si le chemin a été inversé
     """
     output = {
         "_comment": comment or "Path config généré automatiquement",
         "path_config": points
+    }
+    
+    # Ajouter configuration de shape suggérée
+    shape_config = {
+        "type": "shape",
+        "shape_config": {
+            "shape": "polygon",
+            "points": [[p["x"], p["y"]] for p in points],
+            "color": colors.get('stroke', '#000000') if colors else '#000000',
+            "stroke_width": 2
+        },
+        "mode": "draw",
+        "skip_rate": 5
+    }
+    
+    # Ajouter fill_color si disponible
+    if colors and colors.get('fill'):
+        shape_config["shape_config"]["fill_color"] = colors['fill']
+    
+    output["suggested_shape_config"] = shape_config
+    output["metadata"] = {
+        "num_points": num_points or len(points),
+        "reversed": reversed_path,
+        "extracted_colors": colors
     }
     
     with open(output_file, "w") as f:
@@ -222,28 +314,74 @@ if __name__ == "__main__":
     
     # Vérifier les arguments
     if len(sys.argv) < 2:
-        print("Usage: python path_extractor.py <fichier> [sampling_rate] [--reverse]")
+        print("Usage: python path_extractor.py <fichier> [sampling_rate] [--reverse] [--num-points N]")
         print("\nExemples:")
         print("  python path_extractor.py arrow.svg")
         print("  python path_extractor.py arrow.png 5")
         print("  python path_extractor.py arrow.svg 3 --reverse")
+        print("  python path_extractor.py arrow.svg 5 --num-points 100")
+        print("\nOptions:")
+        print("  sampling_rate: Taux d'échantillonnage (défaut: 5)")
+        print("  --reverse: Inverser l'ordre des points")
+        print("  --num-points N: Limiter à N points (échantillonnage uniforme)")
         sys.exit(1)
     
     file_path = sys.argv[1]
-    sampling_rate = int(sys.argv[2]) if len(sys.argv) > 2 else 5
-    reverse = '--reverse' in sys.argv
+    
+    # Parser les arguments
+    sampling_rate = 5
+    reverse = False
+    max_points = None
+    
+    i = 2
+    while i < len(sys.argv):
+        arg = sys.argv[i]
+        if arg == '--reverse':
+            reverse = True
+        elif arg == '--num-points' and i + 1 < len(sys.argv):
+            max_points = int(sys.argv[i + 1])
+            i += 1
+        elif arg.startswith('--'):
+            pass  # Ignorer les options inconnues
+        else:
+            sampling_rate = int(arg)
+        i += 1
     
     # Extraire les points
     try:
         points = extract_path_points(file_path, sampling_rate, reverse)
+        original_count = len(points)
+        
+        # Limiter le nombre de points si demandé
+        if max_points and len(points) > max_points:
+            step = len(points) / max_points
+            points = [points[int(i * step)] for i in range(max_points)]
+            print(f"  📉 Échantillonnage: {original_count} → {len(points)} points")
         
         # Analyser
         analyze_endpoints(file_path)
         
+        # Extraire les couleurs pour les SVG
+        colors = None
+        if Path(file_path).suffix.lower() == '.svg':
+            colors = extract_svg_colors(file_path)
+            if colors:
+                print(f"\n🎨 Couleurs extraites:")
+                if colors.get('fill'):
+                    print(f"  Remplissage (fill): {colors['fill']}")
+                if colors.get('stroke'):
+                    print(f"  Contour (stroke): {colors['stroke']}")
+        
         # Sauvegarder
         output_name = Path(file_path).stem + "_path_config.json"
-        save_path_config(points, output_name, 
-                        f"Extrait de {file_path} (sampling={sampling_rate})")
+        comment = f"Extrait de {file_path} (sampling={sampling_rate}"
+        if reverse:
+            comment += ", reversed"
+        if max_points:
+            comment += f", limited to {max_points} points"
+        comment += ")"
+        
+        save_path_config(points, output_name, comment, colors, original_count, reverse)
         
         # Aperçu
         print(f"\n📋 Aperçu des 10 premiers points:")
@@ -252,8 +390,11 @@ if __name__ == "__main__":
         if len(points) > 10:
             print(f"  ... et {len(points) - 10} points de plus")
         
-        print(f"\n✨ Copie le contenu de '{output_name}' dans ton config JSON!")
+        print(f"\n✨ Configuration shape suggérée incluse dans '{output_name}'!")
+        print(f"   Tu peux utiliser 'suggested_shape_config' pour type shape avec couleurs extraites.")
         
     except Exception as e:
         print(f"\n❌ Erreur: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)

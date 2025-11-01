@@ -769,6 +769,8 @@ def render_shape_to_image(shape_config, target_width, target_height):
             - stroke_width: Line thickness in pixels (default: 2)
             - position: Dict with x, y for shape center/start (default: canvas center)
             - size: Size parameter (radius for circle, width/height for rectangle, etc.)
+            - width: Width for rectangle (alternative to size)
+            - height: Height for rectangle (alternative to size)
             - points: List of points for polygon [[x1, y1], [x2, y2], ...]
             - start: Start point for line/arrow [x, y]
             - end: End point for line/arrow [x, y]
@@ -782,89 +784,64 @@ def render_shape_to_image(shape_config, target_width, target_height):
     # Create a white canvas
     img = np.ones((target_height, target_width, 3), dtype=np.uint8) * 255
     
+    # Helper function to convert hex color to BGR
+    def parse_color(color_value):
+        if isinstance(color_value, str) and color_value.startswith('#'):
+            # Convert hex to RGB then to BGR
+            hex_color = color_value.lstrip('#')
+            rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            return (rgb[2], rgb[1], rgb[0])  # BGR for OpenCV
+        elif isinstance(color_value, (list, tuple)) and len(color_value) == 3:
+            # Assume RGB, convert to BGR
+            return (color_value[2], color_value[1], color_value[0])
+        return color_value
+    
     # Extract configuration
     shape_type = shape_config.get('shape', 'circle')
-    color = shape_config.get('color', (0, 0, 0))
+    color = parse_color(shape_config.get('color', (0, 0, 0)))
     fill_color = shape_config.get('fill_color', None)
+    if fill_color:
+        fill_color = parse_color(fill_color)
     stroke_width = shape_config.get('stroke_width', 2)
     position = shape_config.get('position', {'x': target_width // 2, 'y': target_height // 2})
-    explicit_size = text_config.get('size', None)
-    img_temp = Image.new('RGB', (target_width, target_height), color='white')
-    draw_temp = ImageDraw.Draw(img_temp)
-    lines = text.split('\n')
-
-    if explicit_size is not None:
-        font_size = int(explicit_size)
-        # Optionally warn if explicit size overflows layer
-        # First try to resolve font using fontconfig
-        font_path = resolve_font_path(font_name, 'normal')
-        try:
-            if font_path:
-                temp_font = ImageFont.truetype(font_path, font_size)
-            else:
-                temp_font = ImageFont.truetype(font_name, font_size)
-        except:
-            temp_font = ImageFont.load_default()
-        try:
-            bbox = draw_temp.textbbox((0, 0), "Ay", font=temp_font)
-            line_height = int((bbox[3] - bbox[1]) * text_config.get('line_height', 1.2))
-        except:
-            line_height = int(font_size * text_config.get('line_height', 1.2))
-        total_height = len(lines) * line_height
-        max_line_width = 0
-        for line in lines:
-            try:
-                bbox = draw_temp.textbbox((0, 0), line, font=temp_font)
-                line_width = bbox[2] - bbox[0]
-            except:
-                line_width = len(line) * font_size // 2
-            max_line_width = max(max_line_width, line_width)
-        margin_w = int(target_width * 0.10)
-        margin_h = int(target_height * 0.10)
-        fit_width = target_width - margin_w
-        fit_height = target_height - margin_h
-        if total_height > fit_height or max_line_width > fit_width:
-            print(f"⚠️ La taille de police demandée ({font_size}) dépasse la zone du layer. Le texte risque d'être tronqué.")
-    else:
-        # Auto-ajustement de la taille
-        margin_w = int(target_width * 0.10)
-        margin_h = int(target_height * 0.10)
-        fit_width = target_width - margin_w
-        fit_height = target_height - margin_h
-        font_size = min(fit_height, fit_width)
-        print('font size', font_size)
-        while font_size > 8:
-            temp_font = None
-            # First try to resolve font using fontconfig
-            font_path = resolve_font_path(font_name, 'normal')
-            try:
-                if font_path:
-                    temp_font = ImageFont.truetype(font_path, font_size)
-                else:
-                    temp_font = ImageFont.truetype(font_name, font_size)
-            except:
-                temp_font = ImageFont.load_default()
-            try:
-                bbox = draw_temp.textbbox((0, 0), "Ay", font=temp_font)
-                line_height = int((bbox[3] - bbox[1]) * text_config.get('line_height', 1.2))
-            except:
-                line_height = int(font_size * text_config.get('line_height', 1.2))
-            total_height = len(lines) * line_height
-            max_line_width = 0
-            for line in lines:
-                try:
-                    bbox = draw_temp.textbbox((0, 0), line, font=temp_font)
-                    line_width = bbox[2] - bbox[0]
-                except:
-                    line_width = len(line) * font_size // 2
-                max_line_width = max(max_line_width, line_width)
-            if total_height <= fit_height and max_line_width <= fit_width:
-                break
-            font_size -= 2
-        if font_size <= 8:
-            font_size = 32 # Taille par défaut raisonnable si l'auto-fit a échoué
+    size = shape_config.get('size', 100)
     
-    if shape_type == 'polygon':
+    # Extract position
+    x = int(position.get('x', target_width // 2))
+    y = int(position.get('y', target_height // 2))
+    
+    # Draw based on shape type
+    if shape_type == 'circle':
+        radius = int(size)
+        if fill_color:
+            cv2.circle(img, (x, y), radius, fill_color, -1)
+        cv2.circle(img, (x, y), radius, color, stroke_width)
+    
+    elif shape_type == 'rectangle':
+        width = shape_config.get('width', size)
+        height = shape_config.get('height', size)
+        x1 = int(x - width // 2)
+        y1 = int(y - height // 2)
+        x2 = int(x + width // 2)
+        y2 = int(y + height // 2)
+        if fill_color:
+            cv2.rectangle(img, (x1, y1), (x2, y2), fill_color, -1)
+        cv2.rectangle(img, (x1, y1), (x2, y2), color, stroke_width)
+    
+    elif shape_type == 'triangle':
+        # Equilateral triangle
+        h = int(size * 0.866)  # height = size * sqrt(3)/2
+        pts = np.array([
+            [x, y - int(2*h/3)],  # top
+            [x - int(size/2), y + int(h/3)],  # bottom left
+            [x + int(size/2), y + int(h/3)]   # bottom right
+        ], np.int32)
+        pts = pts.reshape((-1, 1, 2))
+        if fill_color:
+            cv2.fillPoly(img, [pts], fill_color)
+        cv2.polylines(img, [pts], True, color, stroke_width)
+    
+    elif shape_type == 'polygon':
         points = shape_config.get('points', [])
         if points:
             pts = np.array(points, np.int32)
