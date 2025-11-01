@@ -174,20 +174,24 @@ Le mode flood fill utilise les mêmes paramètres que les autres modes :
 Le mode flood fill fonctionne en :
 
 1. **Détection** : Analyse l'image pour identifier les pixels de contenu
-2. **Segmentation** : Utilise `cv2.connectedComponents()` pour trouver les régions connectées
+2. **Segmentation** : Utilise `cv2.connectedComponents()` avec **8-connectivité** pour trouver les régions connectées
+   - La 8-connectivité inclut les voisins diagonaux, permettant de remplir correctement les coins et zones étroites
+   - Améliore la couverture par rapport à la 4-connectivité (seulement horizontal/vertical)
 3. **Tri** : Ordonne les régions de haut en bas, gauche à droite
 4. **Remplissage** : Remplit progressivement chaque région avec la main qui suit le mouvement
 5. **Finalisation** : Applique les couleurs finales de l'image
 
 ### Algorithme Coloriage
 
-Le mode coloriage fonctionne en :
+Le mode coloriage fonctionne en **pattern diagonal zigzag** :
 
 1. **Détection** : Identifie tous les pixels de contenu de l'image
-2. **Organisation** : Trie les pixels de haut en bas, gauche à droite
-3. **Bandes** : Groupe les pixels en bandes horizontales (5 pixels de hauteur)
-4. **Coloriage** : Colorie chaque bande progressivement, segment par segment
-5. **Animation** : La main suit le mouvement de coloriage de gauche à droite
+2. **Organisation diagonale** : Groupe les pixels en bandes diagonales où y+x est constant
+3. **Zigzag** : Alterne la direction de coloriage entre bandes (haut-bas, puis bas-haut)
+4. **Coloriage** : Colorie chaque bande diagonale progressivement, segment par segment
+5. **Animation** : La main suit le mouvement de coloriage en diagonale, créant un effet zigzag naturel
+
+Ce pattern diagonal crée un effet de coloriage plus naturel et dynamique, comme si on coloriait en suivant des lignes diagonales.
 
 ## Exemples de configuration
 

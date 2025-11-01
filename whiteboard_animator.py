@@ -2995,6 +2995,9 @@ def draw_flood_fill(
     Implémente l'animation de remplissage de type "flood fill".
     Identifie les régions connectées et les remplit progressivement avec la main.
     
+    Utilise la 8-connectivité pour détecter les régions, ce qui permet de gérer
+    correctement les coins et les zones étroites en considérant les voisins diagonaux.
+    
     Args:
         variables: AllVariables object with image data
         object_mask: Optional mask to restrict drawing area
@@ -3017,8 +3020,10 @@ def draw_flood_fill(
     # Create a binary mask of content
     binary_mask = (img_thresh_copy < black_pixel_threshold).astype(np.uint8)
     
-    # Find connected components (regions)
-    num_labels, labels = cv2.connectedComponents(binary_mask)
+    # Find connected components (regions) using 8-connectivity
+    # 8-connectivity includes diagonal neighbors, which improves fill coverage
+    # in corners and narrow areas compared to 4-connectivity (horizontal/vertical only)
+    num_labels, labels = cv2.connectedComponents(binary_mask, connectivity=8)
     
     # Collect regions (skip label 0 which is background)
     regions = []
@@ -3116,7 +3121,10 @@ def draw_coloriage(
     """
     Implémente l'animation de coloriage (coloring with hand).
     Remplit l'image progressivement avec les couleurs, comme si on coloriait avec des crayons/marqueurs.
-    La main se déplace en suivant un pattern de coloriage naturel (gauche à droite, haut en bas).
+    La main se déplace en suivant un pattern de coloriage diagonal en zigzag.
+    
+    Le pattern diagonal organise les pixels en bandes diagonales (où y+x est constant) et alterne
+    la direction de coloriage pour créer un effet zigzag naturel.
     
     Args:
         variables: AllVariables object with image data
@@ -3139,31 +3147,38 @@ def draw_coloriage(
     
     print(f"  🎨 Coloriage mode: {len(content_pixels[0])} pixels à colorier")
     
-    # Create a list of pixel coordinates sorted for natural coloring pattern
-    # Sort by row first (top to bottom), then by column (left to right) within each row
+    # Create a list of pixel coordinates organized by diagonal bands where each band
+    # contains pixels with the same y+x sum, then sorted in zigzag pattern
     pixel_coords = list(zip(content_pixels[0], content_pixels[1]))
-    pixel_coords.sort(key=lambda p: (p[0], p[1]))  # Sort by y, then x
     
-    # Group pixels into horizontal bands for smoother coloring animation
-    COLORIAGE_BAND_HEIGHT = 5  # Color in bands of 5 pixels height
-    bands = []
-    current_band = []
-    current_y = -1
-    
+    # Group pixels by diagonal bands
+    # Each diagonal band has pixels where y+x is constant
+    diagonal_bands = {}
     for y, x in pixel_coords:
-        band_index = y // COLORIAGE_BAND_HEIGHT
-        if band_index != current_y:
-            if current_band:
-                bands.append(current_band)
-            current_band = [(y, x)]
-            current_y = band_index
+        diagonal_index = y + x
+        if diagonal_index not in diagonal_bands:
+            diagonal_bands[diagonal_index] = []
+        diagonal_bands[diagonal_index].append((y, x))
+    
+    # Sort diagonal bands by index (top-left to bottom-right)
+    sorted_diagonals = sorted(diagonal_bands.keys())
+    
+    # Create zigzag pattern by alternating sort direction within each diagonal
+    bands = []
+    for i, diag_idx in enumerate(sorted_diagonals):
+        diagonal_pixels = diagonal_bands[diag_idx]
+        
+        # Zigzag: alternate between ascending and descending order
+        if i % 2 == 0:
+            # Even diagonals: sort top-left to bottom-right (by y ascending)
+            diagonal_pixels.sort(key=lambda p: p[0])
         else:
-            current_band.append((y, x))
+            # Odd diagonals: sort bottom-right to top-left (by y descending)
+            diagonal_pixels.sort(key=lambda p: p[0], reverse=True)
+        
+        bands.append(diagonal_pixels)
     
-    if current_band:
-        bands.append(current_band)
-    
-    print(f"  📊 Organisé en {len(bands)} bandes de coloriage")
+    print(f"  📊 Organisé en {len(bands)} bandes diagonales (zigzag)")
     
     counter = 0
     total_pixels_colored = 0
