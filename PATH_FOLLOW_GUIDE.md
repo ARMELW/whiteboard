@@ -58,8 +58,9 @@ Point 1 → Point 2 → Point 3 → ... → Point N
 
 ### Predefined Path Configuration (NEW! 🆕)
 
-You can now specify custom path points directly in the configuration instead of extracting them from the image:
+You can now specify custom path points directly in the configuration instead of extracting them from the image.
 
+**Format 1: Object with points key**
 ```json
 {
   "layers": [
@@ -81,8 +82,29 @@ You can now specify custom path points directly in the configuration instead of 
 }
 ```
 
+**Format 2: Direct array (simplified)**
+```json
+{
+  "layers": [
+    {
+      "image_path": "signature.png",
+      "mode": "path_follow",
+      "skip_rate": 2,
+      "path_config": [
+        {"x": 100, "y": 100},
+        {"x": 150, "y": 120},
+        {"x": 200, "y": 140},
+        {"x": 250, "y": 160},
+        {"x": 300, "y": 180}
+      ]
+    }
+  ]
+}
+```
+
 **How it works:**
 - When `path_config` is provided, the system uses the predefined points instead of extracting contours from the image
+- Both formats are supported: object with `points` key or direct array
 - The image is still used to determine what content to draw at each point
 - Each point should be within the bounds of the image dimensions
 
