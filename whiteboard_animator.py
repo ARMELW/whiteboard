@@ -97,6 +97,7 @@ DEFAULT_OBJECT_SKIP_RATE = 8
 DEFAULT_BG_OBJECT_SKIP_RATE = 20
 DEFAULT_MAIN_IMG_DURATION = 3
 DEFAULT_CRF = 18  # Lower = better quality (0-51, 18 is visually lossless)
+MAX_TEXT_DISPLAY_LENGTH = 50  # Maximum characters to show in text layer display
 
 # --- Classes et Fonctions ---
 
@@ -150,6 +151,22 @@ def load_image_from_url_or_path(image_source):
             return None
         
         return img
+
+def format_text_config_for_display(text_config):
+    """Extract and format text configuration for display in console output.
+    
+    Args:
+        text_config: Dictionary with text configuration
+        
+    Returns:
+        String with formatted config details: (font:X, size:Y, color:Z, style:A, align:B)
+    """
+    font = text_config.get('font', 'Arial')
+    size = text_config.get('size', 32)
+    color = text_config.get('color', (0, 0, 0))
+    style = text_config.get('style', 'normal')
+    align = text_config.get('align', 'left')
+    return f"(font:{font}, size:{size}, color:{color}, style:{style}, align:{align})"
 
 def render_text_to_image(text_config, target_width, target_height):
     """Render text to an image using PIL/Pillow with advanced multilingual and effect support.
@@ -3095,7 +3112,10 @@ def draw_layered_whiteboard_animations(
                 if 'position' not in layer and 'position' in text_config:
                     layer['position'] = text_config['position']
                 
-                print(f"    📝 Génération de texte: \"{text_config.get('text', '')[:50]}...\"")
+                # Display text config details for verification
+                config_display = format_text_config_for_display(text_config)
+                text_preview = text_config.get('text', '')[:MAX_TEXT_DISPLAY_LENGTH]
+                print(f"    📝 Génération de texte: \"{text_preview}...\" {config_display}")
                 
                 # Calculate scaling factors for position adaptation (early for text layers)
                 # Note: This is calculated again later for all layers, but text needs it here
@@ -4117,7 +4137,9 @@ def compose_layers(layers_config, target_width, target_height, base_path="."):
                 if 'position' not in layer and 'position' in text_config:
                     layer['position'] = text_config['position']
                 
-                print(f"    📝 Génération de texte pour composition")
+                # Display text config details for verification
+                config_display = format_text_config_for_display(text_config)
+                print(f"    📝 Génération de texte pour composition {config_display}")
                 # For layer-based rendering with anchor_point, use layer position
                 # Otherwise, use text_config.position if available, else position at (0,0)
                 text_config_for_render = text_config.copy()
@@ -4456,6 +4478,11 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
                 text_config = layer.get('text_config', {})
                 if not text_config or 'text' not in text_config:
                     continue
+                # Display text config details for verification
+                if verbose:
+                    config_display = format_text_config_for_display(text_config)
+                    text_content = text_config.get('text', '')[:MAX_TEXT_DISPLAY_LENGTH]
+                    print(f"    📝 Rendering text layer: \"{text_content}...\" {config_display}")
                 # Render text to full scene size, we'll crop later
                 layer_img = render_text_to_image(text_config, scene_width, scene_height)
                 
