@@ -417,6 +417,11 @@ def render_text_to_image(text_config, target_width, target_height):
         fonts_to_try.append((fallback_font, 'normal'))
     fonts_to_try.extend([("DejaVuSans", "normal"), ("Arial", "normal"), ("NotoSans", "normal")])
     
+    # Track whether we need to apply synthetic styling
+    synthetic_bold = False
+    synthetic_italic = False
+    loaded_style = None
+    
     for font_name_try, font_style in fonts_to_try:
         if font is not None:
             break
@@ -428,6 +433,7 @@ def render_text_to_image(text_config, target_width, target_height):
         if font_path:
             try:
                 font = ImageFont.truetype(font_path, font_size)
+                loaded_style = current_style
                 break
             except (OSError, IOError):
                 # Font file not readable or invalid, try fallback
@@ -447,12 +453,15 @@ def render_text_to_image(text_config, target_width, target_height):
             for font_variant in variants:
                 try:
                     font = ImageFont.truetype(font_variant, font_size)
+                    loaded_style = current_style
                     break
                 except:
                     pass
 
             if font is None:
                 font = ImageFont.truetype(font_name_try, font_size)
+                # If we loaded a base font without style, mark as 'normal'
+                loaded_style = 'normal'
         except:
             # Essai des chemins système communs (la logique originale est maintenue)
             common_fonts = [
@@ -463,6 +472,7 @@ def render_text_to_image(text_config, target_width, target_height):
             for font_path_try in common_fonts:
                 try:
                     font = ImageFont.truetype(font_path_try, font_size)
+                    loaded_style = 'normal'
                     break
                 except:
                     pass
@@ -475,6 +485,20 @@ def render_text_to_image(text_config, target_width, target_height):
             font = ImageFont.load_default() 
         except:
             font = ImageFont.load_default()
+    
+    # Determine if we need to apply synthetic styling
+    # If the requested style doesn't match what we loaded, apply synthetic effects
+    if loaded_style is not None and loaded_style.lower() != style.lower():
+        style_lower = style.lower()
+        loaded_style_lower = loaded_style.lower()
+        
+        # Check if synthetic bold is needed
+        if 'bold' in style_lower and 'bold' not in loaded_style_lower:
+            synthetic_bold = True
+        
+        # Check if synthetic italic is needed
+        if 'italic' in style_lower and 'italic' not in loaded_style_lower:
+            synthetic_italic = True
     
     # 5. Calcul de l'Agencement
     lines = processed_text.split('\n')
@@ -540,12 +564,29 @@ def render_text_to_image(text_config, target_width, target_height):
         if vertical:
             # Logique du texte vertical (caractère par caractère)
             current_y = y
+            
+            # Determine stroke settings for synthetic bold (vertical text)
+            stroke_w = 0
+            stroke_f = None
+            if synthetic_bold:
+                stroke_w = max(1, int(font_size / 20))
+                stroke_f = color
+            
             for char in line:
                 # Dessin de l'ombre/contour... (omitted for brevity, as the logic is complex but maintained)
-                draw.text((x, current_y), char, fill=color, font=font)
+                draw.text((x, current_y), char, fill=color, font=font, 
+                         stroke_width=stroke_w, stroke_fill=stroke_f)
                 current_y += line_height
         else:
             # Logique du texte horizontal
+            
+            # Determine stroke settings for synthetic bold
+            stroke_w = 0
+            stroke_f = None
+            if synthetic_bold:
+                # Apply synthetic bold using stroke
+                stroke_w = max(1, int(font_size / 20))  # Scale stroke with font size
+                stroke_f = color
             
             # 1. Ombre
             if shadow:
@@ -553,7 +594,8 @@ def render_text_to_image(text_config, target_width, target_height):
                 shadow_color = shadow.get('color', (128, 128, 128))
                 if isinstance(shadow_color, str) and shadow_color.startswith('#'):
                     shadow_color = tuple(int(shadow_color[i:i+2], 16) for i in (1, 3, 5))
-                draw.text((x + offset[0], y + offset[1]), line, fill=shadow_color, font=font)
+                draw.text((x + offset[0], y + offset[1]), line, fill=shadow_color, font=font, 
+                         stroke_width=stroke_w, stroke_fill=stroke_f)
             
             # 2. Contour (Outline)
             if outline:
@@ -564,13 +606,48 @@ def render_text_to_image(text_config, target_width, target_height):
                 for dx in range(-width, width + 1):
                     for dy in range(-width, width + 1):
                         if dx != 0 or dy != 0:
-                            draw.text((x + dx, y + dy), line, fill=outline_color, font=font)
+                            draw.text((x + dx, y + dy), line, fill=outline_color, font=font,
+                                     stroke_width=stroke_w, stroke_fill=stroke_f)
             
             # 3. Texte principal
-            draw.text((x, y), line, fill=color, font=font)
+            draw.text((x, y), line, fill=color, font=font, stroke_width=stroke_w, stroke_fill=stroke_f)
             y += line_height
     
-    # 7. Conversion finale (RGB -> BGR)
+    # 7. Apply synthetic italic transformation if needed
+    if synthetic_italic:
+        # Apply shear transformation for italic effect
+        # Convert to numpy array for transformation
+        img_array = np.array(img)
+        
+        # Define the shear angle (typically 15-20 degrees for italic)
+        shear_angle = -15  # Negative for rightward slant
+        shear_factor = np.tan(np.radians(shear_angle))
+        
+        # Create affine transformation matrix for shear
+        # [1, shear, 0]
+        # [0, 1,     0]
+        height, width = img_array.shape[:2]
+        
+        # Calculate the new width after shearing
+        new_width = width + int(abs(shear_factor * height))
+        
+        # Create transformation matrix
+        M = np.float32([[1, shear_factor, 0], [0, 1, 0]])
+        
+        # Apply the transformation
+        img_array = cv2.warpAffine(img_array, M, (new_width, height), 
+                                    borderMode=cv2.BORDER_CONSTANT, 
+                                    borderValue=(255, 255, 255))
+        
+        # Crop back to original width (centered)
+        if new_width > width:
+            start_x = (new_width - width) // 2
+            img_array = img_array[:, start_x:start_x+width]
+        
+        # Convert back to PIL Image, then to BGR
+        img = Image.fromarray(img_array)
+    
+    # 8. Conversion finale (RGB -> BGR)
     img_array = np.array(img)
     img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
     
