@@ -24,3 +24,7 @@ debug_*.png
 test_font*.png
 test_issue*.png
 demo_font_family*.png
+
+# Test screenshots (temporary)
+screenshot_*.png
+svg_*.png

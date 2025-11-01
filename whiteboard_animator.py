@@ -80,6 +80,14 @@ except ImportError:
     PARTICLE_SYSTEM_AVAILABLE = False
     print("⚠️ Warning: particle_system module not available. Particle effects disabled.")
 
+# Import SVG support module
+try:
+    import cairosvg
+    SVG_SUPPORT = True
+except ImportError:
+    SVG_SUPPORT = False
+    print("⚠️ Warning: cairosvg module not available. SVG images cannot be loaded.")
+
 # from kivy.clock import Clock # COMMENTÉ: Remplacé par un appel direct pour CLI
 
 # --- Variables Globales ---
@@ -209,6 +217,38 @@ def load_image_from_url_or_path(image_source):
         if not os.path.exists(image_source):
             print(f"    ⚠️ Fichier local introuvable: {image_source}")
             return None
+        
+        # Check if it's an SVG file
+        if image_source.lower().endswith('.svg'):
+            if not SVG_SUPPORT:
+                print(f"    ⚠️ Impossible de lire l'image SVG: {image_source}")
+                print(f"    💡 Conseil: Installez cairosvg avec 'pip install cairosvg' pour supporter les fichiers SVG")
+                return None
+            
+            try:
+                # Convert SVG to PNG using cairosvg
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+                    tmp_path = tmp_file.name
+                    cairosvg.svg2png(url=image_source, write_to=tmp_path)
+                
+                # Load the converted PNG
+                img = cv2.imread(tmp_path)
+                
+                # Clean up temporary file
+                try:
+                    os.unlink(tmp_path)
+                except:
+                    pass
+                
+                if img is None:
+                    print(f"    ⚠️ Impossible de lire l'image SVG convertie: {image_source}")
+                    return None
+                
+                print(f"    ✅ Image SVG chargée avec succès: {image_source}")
+                return img
+            except Exception as e:
+                print(f"    ⚠️ Erreur lors de la conversion SVG: {e}")
+                return None
         
         img = cv2.imread(image_source)
         if img is None:
