@@ -3383,9 +3383,9 @@ def draw_path_follow(
                 config_type = type(path_config).__name__
                 print(f"  ⚠️ Invalid path_config format (received {config_type}), falling back to image extraction")
                 path_config = None
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError):
             # Malformed point data (missing 'x' or 'y' keys, or wrong type)
-            print(f"  ⚠️ Malformed path_config data ({e}), falling back to image extraction")
+            print(f"  ⚠️ Malformed path_config data - each point must have 'x' and 'y' coordinates, falling back to image extraction")
             path_config = None
     
     if not path_config:
