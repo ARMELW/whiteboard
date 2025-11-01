@@ -21,3 +21,5 @@ demo_scene_cameras_config.json
 demo_*.png
 demo_*.mp4
 debug_*.png
+test_font*.png
+test_issue*.png
