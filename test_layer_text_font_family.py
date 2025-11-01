@@ -8,7 +8,7 @@ This test creates a comprehensive demonstration showing:
 """
 import sys
 import os
-import json
+import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -242,7 +242,6 @@ def test_font_family_layers():
         print(f"  ✅ Scene rendered successfully: {output_file}")
     except Exception as e:
         print(f"  ❌ Error rendering scene: {str(e)}")
-        import traceback
         traceback.print_exc()
         return False
     
@@ -327,7 +326,6 @@ def test_font_family_layers():
         print(f"  ✅ Font styles rendered successfully: {output_file}")
     except Exception as e:
         print(f"  ❌ Error rendering font styles: {str(e)}")
-        import traceback
         traceback.print_exc()
         return False
     
@@ -412,7 +410,6 @@ def test_font_family_layers():
         print(f"  ✅ Multilingual text rendered successfully: {output_file}")
     except Exception as e:
         print(f"  ❌ Error rendering multilingual text: {str(e)}")
-        import traceback
         traceback.print_exc()
         return False
     
