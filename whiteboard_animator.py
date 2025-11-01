@@ -4016,6 +4016,10 @@ def draw_layered_whiteboard_animations(
                                 print(f"    🎨 Couleur de remplissage: {colors['fill']}")
                             if colors.get('stroke'):
                                 print(f"    🎨 Couleur de contour: {colors['stroke']}")
+                        
+                        # Store the shape_config back into the layer so it's available later
+                        # for path_follow animation
+                        layer['shape_config'] = shape_config
                     
                     except ImportError:
                         print(f"    ⚠️ path_extractor module non disponible")
