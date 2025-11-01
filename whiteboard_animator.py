@@ -194,7 +194,49 @@ def render_text_to_image(text_config, target_width, target_height):
     # Extract configuration
     text = text_config.get('text', '')
     font_name = text_config.get('font', 'Arial')
-    font_size = text_config.get('size', 32)
+    # Support font_size_ratio for dynamic sizing based on layer height
+    font_size_ratio = text_config.get('font_size_ratio', None)
+    if font_size_ratio is not None:
+        # font_size_ratio is a float, e.g. 0.8 means 80% of layer height
+        font_size = int(target_height * float(font_size_ratio))
+    else:
+        # Auto-fit font size: find the largest font size that fits in the layer with margin
+        margin_w = int(target_width * 0.10)  # 10% width margin
+        margin_h = int(target_height * 0.10) # 10% height margin
+        fit_width = target_width - margin_w
+        fit_height = target_height - margin_h
+        font_size = min(fit_height, fit_width)
+        temp_font = None
+        from PIL import ImageFont, ImageDraw, Image
+        img_temp = Image.new('RGB', (target_width, target_height), color='white')
+        draw_temp = ImageDraw.Draw(img_temp)
+        lines = text_config.get('text', '').split('\n')
+        while font_size > 8:
+            try:
+                temp_font = ImageFont.truetype(text_config.get('font', 'Arial'), font_size)
+            except:
+                temp_font = ImageFont.load_default()
+            # Calculate line heights
+            try:
+                bbox = draw_temp.textbbox((0, 0), "Ay", font=temp_font)
+                line_height = int((bbox[3] - bbox[1]) * text_config.get('line_height', 1.2))
+            except:
+                line_height = int(font_size * text_config.get('line_height', 1.2))
+            total_height = len(lines) * line_height
+            # Calculate max line width
+            max_line_width = 0
+            for line in lines:
+                try:
+                    bbox = draw_temp.textbbox((0, 0), line, font=temp_font)
+                    line_width = bbox[2] - bbox[0]
+                except:
+                    line_width = len(line) * font_size // 2
+                if line_width > max_line_width:
+                    max_line_width = line_width
+            # Check if fits with margin
+            if total_height <= fit_height and max_line_width <= fit_width:
+                break
+            font_size -= 2
     color = text_config.get('color', (0, 0, 0))  # Default black
     style = text_config.get('style', 'normal')
     line_height_multiplier = text_config.get('line_height', 1.2)
