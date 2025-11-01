@@ -4,6 +4,12 @@
 
 This document describes the comprehensive testing of the font family feature on text layers in the whiteboard animator. The test demonstrates that font families are properly applied to text layers and work correctly in combination with image layers.
 
+## Visual Verification
+
+![Font Family Test Results](https://github.com/user-attachments/assets/71f6ab77-5abe-4032-9845-98f8e94882ca)
+
+The screenshot above shows the comprehensive test results with all three test scenarios demonstrating the proper functioning of the font family feature on text layers.
+
 ## Test Purpose
 
 The test was created to verify:
