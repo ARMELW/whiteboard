@@ -1187,10 +1187,18 @@ def preprocess_image(img, variables):
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(3, 3))
     cl1 = clahe.apply(img_gray)
 
-    # Seuil adaptatif gaussien
-    img_thresh = cv2.adaptiveThreshold(
-        img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 10
-    )
+    # Use a simple threshold for better detection of filled text
+    # This captures all pixels that are not white (< 240)
+    # For text layers, this works better than adaptive threshold
+    _, img_thresh = cv2.threshold(img_gray, 240, 255, cv2.THRESH_BINARY)
+    
+    # For images with more complex content, fall back to adaptive threshold
+    # Check if image is mostly white (likely a text layer)
+    white_ratio = np.sum(img_gray > 240) / (img_gray.shape[0] * img_gray.shape[1])
+    if white_ratio < 0.7:  # Less than 70% white - use adaptive threshold for complex images
+        img_thresh = cv2.adaptiveThreshold(
+            img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 10
+        )
 
     # Ajout des éléments requis à l'objet variables
     variables.img_ht = img_ht
