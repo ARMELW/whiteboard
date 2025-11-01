@@ -4355,6 +4355,17 @@ def draw_layered_whiteboard_animations(
                     # Get path_config if available for path_follow mode
                     path_config = layer.get('path_config', None) if layer_mode == 'path_follow' else None
                     
+                    # For shape layers with polygon type, automatically use path_follow animation
+                    # if mode is 'draw' and shape has points
+                    if layer_type == 'shape' and layer_mode == 'draw':
+                        shape_config = layer.get('shape_config', {})
+                        if shape_config.get('shape') == 'polygon' and 'points' in shape_config:
+                            # Convert polygon points to path_config format for path_follow
+                            polygon_points = shape_config['points']
+                            path_config = [{'x': int(p[0]), 'y': int(p[1])} for p in polygon_points]
+                            layer_mode = 'path_follow'  # Switch to path_follow mode
+                            print(f"    🔄 Utilisation automatique de path_follow pour polygon avec {len(path_config)} points")
+                    
                     # If path_follow mode with path_config and an image, we need to transform
                     # the path coordinates from the original image space to the canvas space
                     if path_config and layer_type == 'image' and orig_layer_img_w > 0:

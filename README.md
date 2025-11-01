@@ -536,6 +536,7 @@ Le système extrait automatiquement:
 - ✅ Les points du path SVG
 - ✅ Les couleurs (fill et stroke)
 - ✅ Génère la configuration de forme
+- ✅ **Utilise automatiquement l'animation path_follow** pour un effet de contour fluide
 
 **Paramètres disponibles:**
 - `svg_path`: Chemin vers le fichier SVG (requis)

@@ -136,6 +136,48 @@ See `examples/shape_from_svg_example.json` for a complete example showing:
 - Multiple shapes with different fill colors
 - Proper layering and animation
 
+## Animation Behavior
+
+### Path Follow Animation (Automatic for Polygons! ✨)
+
+When using `mode: "draw"` with polygon shapes, the system **automatically uses path_follow animation** instead of tile-by-tile drawing. This creates a smooth animation that follows the outline of your shape!
+
+**What this means:**
+- ✅ **Polygon shapes** extracted from SVG → Smooth outline-following animation
+- ✅ Natural hand-drawn effect following the shape contour
+- ✅ More realistic and visually appealing
+- ✅ No configuration needed - it's automatic!
+
+**Other shapes (circle, rectangle, triangle, etc.):**
+- Use standard tile-by-tile animation
+- Still support fill colors properly
+
+**Example:**
+```json
+{
+  "type": "shape",
+  "svg_path": "logo.svg",  // Auto-extracts as polygon
+  "mode": "draw",           // Automatically uses path_follow!
+  "skip_rate": 5
+}
+```
+
+The animation will smoothly follow the contour of your logo instead of drawing it tile-by-tile.
+
+### Manual Control
+
+If you want tile-by-tile animation for a polygon, you can explicitly set:
+```json
+{
+  "type": "shape",
+  "shape_config": {
+    "shape": "circle",  // Use a different shape type
+    // or convert polygon to image first
+  },
+  "mode": "draw"
+}
+```
+
 ## Supported Shape Types
 
 The `render_shape_to_image` function now properly supports all shape types with fill colors:
@@ -325,6 +367,7 @@ python whiteboard_animator.py --config animation.json
 - ✅ Full color control
 - ✅ Better integration with other shapes
 - ✅ Consistent animation behavior
+- ✅ **Automatic path_follow animation** for smooth outline-following effect
 
 ## Tips
 
