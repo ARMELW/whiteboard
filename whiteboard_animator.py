@@ -194,13 +194,27 @@ def render_text_to_image(text_config, target_width, target_height):
     # Extract configuration
     text = text_config.get('text', '')
     font_name = text_config.get('font', 'Arial')
-    # Support font_size_ratio for dynamic sizing based on layer height
+    
+    # Determine font size with priority:
+    # 1. Explicit 'size' parameter
+    # 2. 'font_size_multiplier' applied to a base size
+    # 3. 'font_size_ratio' for dynamic sizing based on layer height
+    # 4. Auto-fit (find largest size that fits with margin)
+    
+    explicit_size = text_config.get('size', None)
+    font_size_multiplier = text_config.get('font_size_multiplier', None)
     font_size_ratio = text_config.get('font_size_ratio', None)
-    if font_size_ratio is not None:
-        # font_size_ratio is a float, e.g. 0.8 means 80% of layer height
+    
+    if explicit_size is not None:
+        # Priority 1: Use explicit size, optionally multiplied
+        font_size = int(explicit_size)
+        if font_size_multiplier is not None:
+            font_size = int(font_size * float(font_size_multiplier))
+    elif font_size_ratio is not None:
+        # Priority 2: Use font_size_ratio (percentage of layer height)
         font_size = int(target_height * float(font_size_ratio))
     else:
-        # Auto-fit font size: find the largest font size that fits in the layer with margin
+        # Priority 3: Auto-fit font size to layer dimensions
         margin_w = int(target_width * 0.10)  # 10% width margin
         margin_h = int(target_height * 0.10) # 10% height margin
         fit_width = target_width - margin_w
@@ -297,6 +311,21 @@ def render_text_to_image(text_config, target_width, target_height):
     
     # Load font with style and fallbacks
     font = None
+    
+    # Try explicit font_path first if provided
+    font_path_explicit = text_config.get('font_path', None)
+    if font_path_explicit:
+        try:
+            # Resolve relative paths
+            if not os.path.isabs(font_path_explicit):
+                font_path_explicit = os.path.join(os.getcwd(), font_path_explicit)
+            
+            if os.path.exists(font_path_explicit):
+                font = ImageFont.truetype(font_path_explicit, font_size)
+                print(f"  ✓ Loaded font from explicit path: {font_path_explicit}")
+        except Exception as e:
+            print(f"  ⚠️ Failed to load font from path {font_path_explicit}: {e}")
+    
     fonts_to_try = [(font_name, style)]
     
     # Add fallback fonts
