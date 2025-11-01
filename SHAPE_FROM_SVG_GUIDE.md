@@ -12,7 +12,60 @@ Previously, when using `path_follow` mode with SVG files, the animation would on
 
 ## Quick Start
 
-### Step 1: Extract Path and Colors from SVG
+### Method 1: Automatic Extraction (NEW! ✨)
+
+**No manual steps required!** Just specify the SVG file path in your configuration:
+
+```json
+{
+  "slides": [{
+    "layers": [{
+      "type": "shape",
+      "svg_path": "path/to/your_file.svg",
+      "z_index": 1,
+      "skip_rate": 5,
+      "mode": "draw"
+    }]
+  }]
+}
+```
+
+The system will automatically:
+- ✅ Extract path points from the SVG
+- ✅ Detect and apply fill/stroke colors
+- ✅ Generate the shape configuration
+
+**With custom parameters:**
+
+```json
+{
+  "type": "shape",
+  "svg_path": "your_file.svg",
+  "svg_sampling_rate": 10,
+  "svg_num_points": 100,
+  "svg_reverse": false,
+  "shape_config": {
+    "color": "#E74C3C",
+    "fill_color": "#FADBD8",
+    "stroke_width": 4
+  },
+  "skip_rate": 5,
+  "mode": "draw"
+}
+```
+
+**Parameters:**
+- `svg_path`: Path to your SVG file (required)
+- `svg_sampling_rate`: Density of points (default: 10)
+- `svg_num_points`: Maximum number of points (optional)
+- `svg_reverse`: Reverse the path direction (default: false)
+- `shape_config`: Override colors and stroke width (optional)
+
+### Method 2: Manual Extraction (Advanced)
+
+If you need more control or want to inspect the extracted data first:
+
+#### Step 1: Extract Path and Colors from SVG
 
 ```bash
 # Basic extraction
@@ -37,7 +90,7 @@ This will create a `<filename>_path_config.json` file with:
 - Color information (if available in SVG)
 - Metadata (number of points, reversed status)
 
-### Step 2: Use the Generated Configuration
+#### Step 2: Use the Generated Configuration
 
 The generated file includes a `suggested_shape_config` that you can copy directly into your animation configuration:
 
@@ -195,15 +248,47 @@ Change the drawing direction:
 python path_extractor.py file.svg 10 --reverse
 ```
 
-## Workflow Example
+## Workflow Examples
 
-Let's create an animation from an SVG logo:
+### Easy Way (Automatic Extraction) ⚡
+
+Create an animation from an SVG logo in 2 steps:
+
+```bash
+# 1. Create your animation config (animation.json):
+{
+  "slides": [{
+    "duration": 6,
+    "layers": [{
+      "type": "shape",
+      "svg_path": "logo.svg",
+      "svg_num_points": 80,
+      "shape_config": {
+        "color": "#2C3E50",
+        "fill_color": "#3498DB",
+        "stroke_width": 3
+      },
+      "mode": "draw",
+      "skip_rate": 5
+    }]
+  }]
+}
+
+# 2. Generate the video
+python whiteboard_animator.py --config animation.json
+```
+
+That's it! The SVG extraction happens automatically.
+
+### Advanced Way (Manual Extraction) 🔧
+
+If you want to inspect or reuse the extracted data:
 
 ```bash
 # 1. Extract path with colors
 python path_extractor.py logo.svg 10 --num-points 80
 
-# 2. This creates logo_path_config.json
+# 2. This creates logo_path_config.json - inspect it if needed
 
 # 3. Create your animation config (animation.json):
 {

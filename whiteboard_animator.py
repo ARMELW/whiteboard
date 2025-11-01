@@ -3951,7 +3951,71 @@ def draw_layered_whiteboard_animations(
             elif layer_type == 'shape':
                 # Render shape to image
                 shape_config = layer.get('shape_config', {})
-                if not shape_config or 'shape' not in shape_config:
+                
+                # Check if we need to auto-extract from SVG
+                svg_path = layer.get('svg_path', None)
+                if svg_path:
+                    print(f"    📄 Auto-extraction depuis SVG: {svg_path}")
+                    # Resolve path
+                    if not os.path.isabs(svg_path):
+                        svg_path = os.path.join(base_path, svg_path)
+                    
+                    if not os.path.exists(svg_path):
+                        print(f"    ⚠️ Fichier SVG introuvable: {svg_path}")
+                        continue
+                    
+                    # Import path_extractor functions
+                    try:
+                        from path_extractor import extract_path_points, extract_svg_colors
+                        
+                        # Extract configuration parameters
+                        sampling_rate = layer.get('svg_sampling_rate', 10)
+                        num_points = layer.get('svg_num_points', None)
+                        reverse = layer.get('svg_reverse', False)
+                        
+                        print(f"    🔍 Extraction des points (sampling={sampling_rate}, num_points={num_points}, reverse={reverse})...")
+                        
+                        # Extract points
+                        points = extract_path_points(svg_path, sampling_rate, reverse)
+                        
+                        # Limit number of points if specified
+                        if num_points and len(points) > num_points:
+                            step = len(points) / num_points
+                            points = [points[int(i * step)] for i in range(num_points)]
+                            print(f"    📉 Points échantillonnés: {len(points)}")
+                        
+                        # Extract colors
+                        colors = extract_svg_colors(svg_path)
+                        
+                        # Create shape_config from extracted data
+                        shape_config = {
+                            'shape': 'polygon',
+                            'points': [[p['x'], p['y']] for p in points],
+                            'color': shape_config.get('color', colors.get('stroke', '#000000') if colors else '#000000'),
+                            'stroke_width': shape_config.get('stroke_width', 2)
+                        }
+                        
+                        # Add fill color if available
+                        if colors and colors.get('fill'):
+                            shape_config['fill_color'] = shape_config.get('fill_color', colors['fill'])
+                        elif 'fill_color' in layer.get('shape_config', {}):
+                            shape_config['fill_color'] = layer['shape_config']['fill_color']
+                        
+                        print(f"    ✅ {len(points)} points extraits depuis SVG")
+                        if colors:
+                            if colors.get('fill'):
+                                print(f"    🎨 Couleur de remplissage: {colors['fill']}")
+                            if colors.get('stroke'):
+                                print(f"    🎨 Couleur de contour: {colors['stroke']}")
+                    
+                    except ImportError:
+                        print(f"    ⚠️ path_extractor module non disponible")
+                        continue
+                    except Exception as e:
+                        print(f"    ⚠️ Erreur lors de l'extraction SVG: {e}")
+                        continue
+                
+                elif not shape_config or 'shape' not in shape_config:
                     print(f"    ⚠️ Configuration de forme manquante ou invalide")
                     continue
                 

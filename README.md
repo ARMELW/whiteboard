@@ -514,6 +514,37 @@ Voir [CONFIG_FORMAT.md](CONFIG_FORMAT.md) pour la documentation complète du for
 
 Créez des diagrammes, des schémas et des illustrations techniques avec des formes vectorielles animées :
 
+### 🆕 Extraction Automatique depuis SVG (NOUVELLE FONCTIONNALITÉ!)
+
+**Plus besoin d'extraction manuelle!** Spécifiez simplement le chemin du fichier SVG:
+
+```json
+{
+  "type": "shape",
+  "svg_path": "logo.svg",
+  "svg_num_points": 100,
+  "shape_config": {
+    "color": "#2C3E50",
+    "fill_color": "#3498DB",
+    "stroke_width": 3
+  },
+  "mode": "draw"
+}
+```
+
+Le système extrait automatiquement:
+- ✅ Les points du path SVG
+- ✅ Les couleurs (fill et stroke)
+- ✅ Génère la configuration de forme
+
+**Paramètres disponibles:**
+- `svg_path`: Chemin vers le fichier SVG (requis)
+- `svg_sampling_rate`: Densité des points (défaut: 10)
+- `svg_num_points`: Nombre maximum de points (optionnel)
+- `svg_reverse`: Inverser la direction (défaut: false)
+
+Voir [SHAPE_FROM_SVG_GUIDE.md](SHAPE_FROM_SVG_GUIDE.md) pour plus de détails.
+
 ### Formes disponibles
 - **Cercles** - Formes circulaires parfaites
 - **Rectangles** - Rectangles et carrés
