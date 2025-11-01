@@ -6,45 +6,11 @@
       "skip_rate": 10,
       "layers": [
         {
-          "type": "image",
-          "z_index": 0,
-          "mode": "draw",
-          "width": 421.4089155934228,
-          "height": 316.58550435267176,
-          "scale": 0.09792919585271956,
-          "source_width": 800,
-          "source_height": 450,
-          "opacity": 1,
-          "skip_rate": 7,
-          "image_path": "http://localhost:9000/assets/3c02d8ae-68ca-4d4f-9ac2-276c5080ca47.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=admin%2F20251031%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251031T222536Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=9f568a8883499692ea3e91eb0de705e6c8afb75cdd982b8e0825e23857c21098",
-          "position": {
-            "x": 35.9118382503284,
-            "y": 200.0893731863872
-          }
-        },
-        {
-          "type": "image",
-          "z_index": 0,
-          "mode": "draw",
-          "width": 669.1976506420118,
-          "height": 975.0867483613713,
-          "scale": 0.43499587275221774,
-          "source_width": 800,
-          "source_height": 450,
-          "opacity": 1,
-          "skip_rate": 9,
-          "image_path": "http://localhost:9000/assets/8d9cd7af-da74-4943-a563-ab9106369f18.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=admin%2F20251030%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251030T151054Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=b9861c1f8c5d0ee891918f6bb888446ceb69f419422a4edd3b3ba7baf7c31a42",
-          "position": {
-            "x": 455.58413378852674,
-            "y": 25.713854849430163
-          }
-        },
-        {
           "type": "text",
           "z_index": 0,
           "mode": "draw",
-          "width": 799.1999999999999,
-          "height": 106.55999999999999,
+          "width": 1188,
+          "height": 316.8,
           "scale": 1,
           "source_width": 800,
           "source_height": 450,
@@ -52,14 +18,14 @@
           "skip_rate": 12,
           "anchor_point": "center",
           "position": {
-            "x": 163,
-            "y": 129
+            "x": 407.7353908974883,
+            "y": 219.55754812670125
           },
           "text_config": {
-            "text": "Votre texte ici",
-            "font_path": "fonts/Pacifico.ttf",
-            "font": "Pacifico",
-            "size": 37,
+            "text": "Votre texte ici\nleka wa",
+            "font_path": "fonts/Arial.ttf",
+            "font": "Arial",
+            "size": 55,
             "style": "normal",
             "color": [
               0,
@@ -67,23 +33,6 @@
               0
             ],
             "align": "center"
-          }
-        },
-        {
-          "type": "image",
-          "z_index": 0,
-          "mode": "draw",
-          "width": 420.1830113245198,
-          "height": 489.53852042266334,
-          "scale": 0.2109352466488553,
-          "source_width": 800,
-          "source_height": 450,
-          "opacity": 1,
-          "skip_rate": 10,
-          "image_path": "http://localhost:9000/assets/8434c598-8116-4baa-b385-43b2514e6499.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=admin%2F20251031%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251031T231530Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=61da26e7b7db93f913f5ab0c9f8161cfe3a1f13a89954ea4988e2d97b0c1859d",
-          "position": {
-            "x": 253.65234600804013,
-            "y": 174.15881757804345
           }
         }
       ]
