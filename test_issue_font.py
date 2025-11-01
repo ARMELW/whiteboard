@@ -14,7 +14,7 @@ import cv2
 def test_issue_scenario():
     """Test the exact configuration from the GitHub issue."""
     print("=" * 70)
-    print("TESTING GITHUB ISSUE: Font not applicate")
+    print("TESTING GITHUB ISSUE: Font not applicable")
     print("=" * 70)
     print()
     

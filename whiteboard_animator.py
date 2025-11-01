@@ -196,7 +196,7 @@ def resolve_font_path(font_name, style='normal'):
             # Verify the file exists
             if os.path.exists(font_path):
                 return font_path
-    except (subprocess.TimeoutExpired, FileNotFoundError, Exception) as e:
+    except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError, OSError):
         # fc-match not available or failed, continue with fallback mechanism
         pass
     
@@ -351,7 +351,8 @@ def render_text_to_image(text_config, target_width, target_height):
             try:
                 font = ImageFont.truetype(font_path, font_size)
                 break
-            except Exception as e:
+            except (OSError, IOError):
+                # Font file not readable or invalid, try fallback
                 pass
         
         # Fallback to direct font name attempts
