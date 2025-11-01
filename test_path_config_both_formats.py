@@ -158,8 +158,8 @@ if __name__ == "__main__":
         print("🎉 ALL TESTS PASSED!")
         print("="*70)
         print("\nThe fix successfully supports both path_config formats:")
-        print("  1. Array format: [{'x': 1, 'y': 2}, ...]")
-        print("  2. Object format: {'points': [{'x': 1, 'y': 2}, ...]}")
+        print('  1. Array format: [{"x": 1, "y": 2}, ...]')
+        print('  2. Object format: {"points": [{"x": 1, "y": 2}, ...]}')
         print("\nThe user's issue is now resolved! ✅")
         print("="*70)
         

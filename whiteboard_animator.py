@@ -3361,8 +3361,8 @@ def draw_path_follow(
         jitter_amount: Amount of random offset for natural hand movement (pixels)
         speed_variation: Variation in drawing speed (0-1, where 0.2 = 20% variation)
         point_sampling: Sample every Nth point (1=all points, 2=every other point, etc.)
-        path_config: Optional[Union[dict, list]] with predefined path points 
-                     (e.g. {"points": [{"x": 12, "y": 30}, ...]} or [{"x": 12, "y": 30}, ...])
+        path_config: Optional[Union[dict, list]] with predefined path points
+            (e.g. {"points": [{"x": 12, "y": 30}, ...]} or [{"x": 12, "y": 30}, ...])
     """
     # Check if we have predefined path points from config
     if path_config:
@@ -3380,8 +3380,7 @@ def draw_path_follow(
                 print(f"  📍 Using {len(path_points)} predefined path points")
             else:
                 # Invalid format, fall through to image extraction
-                config_type = type(path_config).__name__
-                print(f"  ⚠️ Invalid path_config format (received {config_type}), falling back to image extraction")
+                print(f"  ⚠️ Invalid path_config format (received {type(path_config).__name__}), falling back to image extraction")
                 path_config = None
         except (KeyError, TypeError):
             # Malformed point data (missing 'x' or 'y' keys, or wrong type)
