@@ -19,6 +19,7 @@ Ce guide de 2800+ lignes couvre :
 ## Fonctionnalités
 
 - ✅ Génération de vidéos d'animation de dessin à partir d'images
+- ✅ **🆕 Mode Flood Fill** - Remplissage progressif par régions connectées (NOUVEAU!)
 - ✅ **🆕 Configuration de Polices Simplifiée** - Système de configuration centralisé pour les polices (NOUVEAU!)
 - ✅ **🆕 Effets de Particules** - Confettis, étincelles, explosions, fumée, magie (NOUVEAU!)
 - ✅ **🆕 Support Audio Complet** - Musique de fond, effets sonores, voix off, sons auto-générés (NOUVEAU!)
