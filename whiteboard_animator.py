@@ -110,6 +110,47 @@ MAX_TEXT_DISPLAY_LENGTH = 50  # Maximum characters to show in text layer display
 TEXT_THRESHOLD = 240  # Pixel intensity threshold for text detection (0-255)
 WHITE_RATIO_THRESHOLD = 0.7  # Ratio of white pixels to determine if image is text-only
 
+# Font configuration cache
+_FONT_CONFIG_CACHE = None
+_FONT_CONFIG_PATH = None
+
+def load_font_config(config_path=None):
+    """Load font configuration from JSON file.
+    
+    Args:
+        config_path: Optional path to font config file. If None, uses default 'fonts.json' in base_path.
+        
+    Returns:
+        Dictionary mapping font names to their .ttf file paths, or empty dict if file doesn't exist
+    """
+    global _FONT_CONFIG_CACHE, _FONT_CONFIG_PATH
+    
+    # Determine config path
+    if config_path is None:
+        config_path = os.path.join(base_path, 'fonts.json')
+    
+    # Return cached config if already loaded from the same path
+    if _FONT_CONFIG_CACHE is not None and _FONT_CONFIG_PATH == config_path:
+        return _FONT_CONFIG_CACHE
+    
+    # Load config file
+    if not os.path.exists(config_path):
+        _FONT_CONFIG_CACHE = {}
+        _FONT_CONFIG_PATH = config_path
+        return _FONT_CONFIG_CACHE
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        _FONT_CONFIG_CACHE = config.get('fonts', {})
+        _FONT_CONFIG_PATH = config_path
+        return _FONT_CONFIG_CACHE
+    except Exception as e:
+        print(f"  ⚠️ Warning: Could not load font config from {config_path}: {e}")
+        _FONT_CONFIG_CACHE = {}
+        _FONT_CONFIG_PATH = config_path
+        return _FONT_CONFIG_CACHE
+
 # --- Classes et Fonctions ---
 
 def load_image_from_url_or_path(image_source):
@@ -164,15 +205,52 @@ def load_image_from_url_or_path(image_source):
         return img
 
 def resolve_font_path(font_name, style='normal'):
-    """Resolve font family name to actual font file path using fontconfig.
+    """Resolve font family name to actual font file path.
+    
+    This function first checks the fonts.json configuration file for a mapping,
+    then falls back to using fontconfig (fc-match) if not found in the config.
     
     Args:
-        font_name: Font family name (e.g., 'Arial', 'Gargi', 'DejaVu Sans')
+        font_name: Font family name (e.g., 'Arial', 'Pacifico', 'DejaVu Sans')
         style: Font style ('normal', 'bold', 'italic', 'bold italic')
         
     Returns:
         Path to font file if found, None otherwise
     """
+    # First, check the font configuration file
+    font_config = load_font_config()
+    
+    if font_name in font_config:
+        # Normalize style
+        style_lower = style.lower()
+        
+        # Try to find exact style match
+        if style_lower in font_config[font_name]:
+            font_path = font_config[font_name][style_lower]
+            
+            # Make path absolute if it's relative
+            if not os.path.isabs(font_path):
+                font_path = os.path.join(base_path, font_path)
+            
+            # Verify the file exists
+            if os.path.exists(font_path):
+                return font_path
+            else:
+                print(f"  ⚠️ Warning: Font file not found in fonts.json: {font_path}")
+        
+        # If exact style not found but font exists in config, try 'normal' style
+        if 'normal' in font_config[font_name] and style_lower != 'normal':
+            font_path = font_config[font_name]['normal']
+            
+            # Make path absolute if it's relative
+            if not os.path.isabs(font_path):
+                font_path = os.path.join(base_path, font_path)
+            
+            # Verify the file exists
+            if os.path.exists(font_path):
+                return font_path
+    
+    # If not found in config, fall back to fontconfig (fc-match)
     try:
         # Build fc-match pattern with style
         pattern = font_name

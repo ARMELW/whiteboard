@@ -1,0 +1,52 @@
+{
+  "slides": [
+    {
+      "index": 0,
+      "duration": 3,
+      "skip_rate": 10,
+      "layers": [
+        {
+          "type": "text",
+          "z_index": 0,
+          "mode": "draw",
+          "skip_rate": 12,
+          "anchor_point": "center",
+          "position": {
+            "x": 960,
+            "y": 300
+          },
+          "text_config": {
+            "text": "Font Configuration Demo",
+            "font": "Pacifico",
+            "size": 72,
+            "style": "normal",
+            "color": [255, 0, 128],
+            "align": "center"
+          }
+        },
+        {
+          "type": "text",
+          "z_index": 1,
+          "mode": "draw",
+          "skip_rate": 8,
+          "anchor_point": "center",
+          "position": {
+            "x": 960,
+            "y": 500
+          },
+          "text_config": {
+            "text": "No need for font_path!\nJust specify the font name",
+            "font": "Pacifico",
+            "size": 40,
+            "style": "normal",
+            "color": [0, 100, 200],
+            "align": "center"
+          }
+        }
+      ]
+    }
+  ],
+  "_comment": "This configuration demonstrates the new font config system",
+  "_note": "Notice how we only specify 'font': 'Pacifico' without needing 'font_path'",
+  "_info": "Font paths are automatically resolved from fonts.json configuration file"
+}
