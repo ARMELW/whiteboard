@@ -5,11 +5,30 @@ Test the font configuration system that maps font names to .ttf files.
 import sys
 import os
 import json
+import tempfile
+import shutil
+import atexit
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from whiteboard_animator import load_font_config, resolve_font_path, render_text_to_image
 import cv2
+
+# Create a temporary directory for test outputs
+TEST_OUTPUT_DIR = tempfile.mkdtemp(prefix="font_config_test_")
+print(f"Test output directory: {TEST_OUTPUT_DIR}")
+
+# Register cleanup function
+def cleanup_test_files():
+    """Clean up test output files on exit."""
+    if os.path.exists(TEST_OUTPUT_DIR):
+        try:
+            shutil.rmtree(TEST_OUTPUT_DIR)
+            print(f"\nCleaned up test directory: {TEST_OUTPUT_DIR}")
+        except Exception as e:
+            print(f"\nWarning: Could not clean up test directory: {e}")
+
+atexit.register(cleanup_test_files)
 
 def test_font_config_loading():
     """Test loading the fonts.json configuration file."""
@@ -84,7 +103,7 @@ def test_text_rendering_without_font_path():
     
     try:
         img = render_text_to_image(text_config, 800, 450)
-        output_file = "test_font_config_pacifico.png"
+        output_file = os.path.join(TEST_OUTPUT_DIR, "test_font_config_pacifico.png")
         cv2.imwrite(output_file, img)
         print(f"   ✅ Text rendered successfully: {output_file}")
     except Exception as e:
@@ -147,7 +166,7 @@ def test_complete_slide_config():
     
     try:
         img = render_text_to_image(text_config, 800, 450)
-        output_file = "test_font_config_complete.png"
+        output_file = os.path.join(TEST_OUTPUT_DIR, "test_font_config_complete.png")
         cv2.imwrite(output_file, img)
         print(f"✅ Slide rendered successfully: {output_file}")
         print("✅ No need to specify font_path in the configuration!")

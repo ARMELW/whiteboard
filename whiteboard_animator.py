@@ -112,6 +112,7 @@ WHITE_RATIO_THRESHOLD = 0.7  # Ratio of white pixels to determine if image is te
 
 # Font configuration cache
 _FONT_CONFIG_CACHE = None
+_FONT_CONFIG_PATH = None
 
 def load_font_config(config_path=None):
     """Load font configuration from JSON file.
@@ -122,29 +123,32 @@ def load_font_config(config_path=None):
     Returns:
         Dictionary mapping font names to their .ttf file paths, or empty dict if file doesn't exist
     """
-    global _FONT_CONFIG_CACHE
-    
-    # Return cached config if already loaded
-    if _FONT_CONFIG_CACHE is not None:
-        return _FONT_CONFIG_CACHE
+    global _FONT_CONFIG_CACHE, _FONT_CONFIG_PATH
     
     # Determine config path
     if config_path is None:
         config_path = os.path.join(base_path, 'fonts.json')
     
+    # Return cached config if already loaded from the same path
+    if _FONT_CONFIG_CACHE is not None and _FONT_CONFIG_PATH == config_path:
+        return _FONT_CONFIG_CACHE
+    
     # Load config file
     if not os.path.exists(config_path):
         _FONT_CONFIG_CACHE = {}
+        _FONT_CONFIG_PATH = config_path
         return _FONT_CONFIG_CACHE
     
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
         _FONT_CONFIG_CACHE = config.get('fonts', {})
+        _FONT_CONFIG_PATH = config_path
         return _FONT_CONFIG_CACHE
     except Exception as e:
         print(f"  ⚠️ Warning: Could not load font config from {config_path}: {e}")
         _FONT_CONFIG_CACHE = {}
+        _FONT_CONFIG_PATH = config_path
         return _FONT_CONFIG_CACHE
 
 # --- Classes et Fonctions ---
