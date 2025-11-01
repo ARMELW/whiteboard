@@ -1,17 +1,11 @@
 {
-  "output": {
-    "path": "path_follow_demo.mp4",
-    "fps": 30,
-    "format": "16:9",
-    "quality": 23
-  },
   "slides": [
     {
       "duration": 6,
       "background": "#ffffff",
       "layers": [
         {
-          "image_path": "../doodle/1.jpg",
+          "image_path": "demo/1.jpg",
           "mode": "path_follow",
           "skip_rate": 2,
           "position": "center",
