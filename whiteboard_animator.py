@@ -4483,8 +4483,25 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
                     config_display = format_text_config_for_display(text_config)
                     text_content = text_config.get('text', '')[:MAX_TEXT_DISPLAY_LENGTH]
                     print(f"    📝 Rendering text layer: \"{text_content}...\" {config_display}")
-                # Render text to full scene size, we'll crop later
-                layer_img = render_text_to_image(text_config, scene_width, scene_height)
+                # Pass layer position and anchor_point to text rendering if not already in text_config
+                text_config_for_render = text_config.copy()
+                if 'position' not in text_config_for_render:
+                    layer_position = layer.get('position', None)
+                    if layer_position:
+                        # Scale position by zoom to match the zoomed scene canvas
+                        text_config_for_render['position'] = {
+                            'x': int(layer_position.get('x', 0) * zoom),
+                            'y': int(layer_position.get('y', 0) * zoom)
+                        }
+                if 'anchor_point' not in text_config_for_render:
+                    text_config_for_render['anchor_point'] = layer.get('anchor_point', 'top-left')
+                # Scale font size by zoom to render crisp text instead of scaling later
+                if 'size' in text_config_for_render:
+                    text_config_for_render['size'] = int(text_config_for_render['size'] * zoom)
+                # Render text to zoomed scene size to avoid blurry scaling
+                zoomed_scene_width = int(scene_width * zoom)
+                zoomed_scene_height = int(scene_height * zoom)
+                layer_img = render_text_to_image(text_config_for_render, zoomed_scene_width, zoomed_scene_height)
                 
             elif layer_type == 'shape':
                 shape_config = layer.get('shape_config', {})
@@ -4569,21 +4586,34 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
             layer_h, layer_w = layer_img.shape[:2] if layer_img is not None else (0, 0)
             
             # Get layer position (in scene coordinates) and anchor point
-            position = layer.get('position', {'x': 0, 'y': 0})
-            anchor_point = layer.get('anchor_point', 'top-left')  # 'top-left' or 'center'
-            
-            layer_x = position.get('x', 0)
-            layer_y = position.get('y', 0)
-            
-            # Adjust position based on anchor point
-            if anchor_point == 'center':
-                # If anchor point is center, adjust to get top-left corner
-                layer_x = layer_x - layer_w // 2
-                layer_y = layer_y - layer_h // 2
+            # For text/shape/arrow layers that render to full scene, positioning is handled internally
+            # so layer position is always (0, 0)
+            if layer_type in ['text', 'shape', 'arrow', 'whiteboard']:
+                layer_x = 0
+                layer_y = 0
+            else:
+                position = layer.get('position', {'x': 0, 'y': 0})
+                anchor_point = layer.get('anchor_point', 'top-left')  # 'top-left' or 'center'
+                
+                layer_x = position.get('x', 0)
+                layer_y = position.get('y', 0)
+                
+                # Adjust position based on anchor point
+                if anchor_point == 'center':
+                    # If anchor point is center, adjust to get top-left corner
+                    layer_x = layer_x - layer_w // 2
+                    layer_y = layer_y - layer_h // 2
             
             # Calculate layer position relative to camera viewport (in scene coordinates)
-            relative_x = layer_x - camera_x
-            relative_y = layer_y - camera_y
+            # For text/shape/arrow layers that render to full scene and handle positioning internally,
+            # we need to account for the camera viewport cropping
+            if layer_type in ['text', 'shape', 'arrow', 'whiteboard']:
+                # These layers are rendered to full scene size, so we crop them based on camera viewport
+                relative_x = -camera_x
+                relative_y = -camera_y
+            else:
+                relative_x = layer_x - camera_x
+                relative_y = layer_y - camera_y
             
             # Apply zoom scaling to convert from scene coordinates to canvas coordinates
             # When zoom > 1, scene content appears larger in canvas (zoomed in)
@@ -4592,7 +4622,8 @@ def compose_scene_with_camera(scene_config, camera_config=None, scene_width=1920
             relative_y = relative_y * zoom
             
             # Scale layer dimensions for zoom
-            if zoom != 1.0 and layer_img is not None:
+            # Skip for text layers as they're already rendered at zoomed size
+            if zoom != 1.0 and layer_img is not None and layer_type != 'text':
                 scaled_w = int(layer_w * zoom)
                 scaled_h = int(layer_h * zoom)
                 if scaled_w > 0 and scaled_h > 0:
