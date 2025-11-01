@@ -3987,6 +3987,15 @@ def draw_layered_whiteboard_animations(
                         # Extract colors
                         colors = extract_svg_colors(svg_path)
                         
+                        # Apply position offset if specified in layer
+                        layer_position = layer.get('position', None)
+                        if layer_position:
+                            offset_x = layer_position.get('x', 0)
+                            offset_y = layer_position.get('y', 0)
+                            print(f"    📍 Applying position offset: x={offset_x}, y={offset_y}")
+                            # Apply offset to all points
+                            points = [{'x': p['x'] + offset_x, 'y': p['y'] + offset_y} for p in points]
+                        
                         # Create shape_config from extracted data
                         shape_config = {
                             'shape': 'polygon',
