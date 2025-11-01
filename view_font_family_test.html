@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layer Text Font Family Test Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+        }
+        .test-section {
+            background-color: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        .screenshot {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success-badge {
+            background-color: #4CAF50;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: inline-block;
+            margin: 5px 5px 5px 0;
+        }
+        .info-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        ul {
+            line-height: 1.8;
+        }
+        .feature-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .feature-list li:before {
+            content: "✅ ";
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 Layer Text Font Family Test Results</h1>
+    
+    <div class="info-box">
+        <strong>Test Purpose:</strong> Verify that font families are properly applied to text layers
+        and work correctly in combination with image layers.
+    </div>
+
+    <div class="test-section">
+        <h2>Test 1: Multiple Text Layers with Different Font Families</h2>
+        <div class="test-description">
+            This test demonstrates a complex scene with multiple text layers using different font families,
+            combined with image layers. It shows that:
+            <ul class="feature-list">
+                <li>Multiple fonts can coexist in the same scene</li>
+                <li>Text layers are properly layered above image layers</li>
+                <li>Font effects (outline, shadow) work correctly</li>
+                <li>Different font families render distinctly</li>
+            </ul>
+        </div>
+        <img src="test_layer_text_font_family_result.png" alt="Test 1 Result" class="screenshot">
+        <p>
+            <span class="success-badge">DejaVu Sans</span>
+            <span class="success-badge">Liberation Serif</span>
+            <span class="success-badge">Liberation Mono</span>
+            <span class="success-badge">DejaVu Sans Mono</span>
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Different Font Styles with Same Font Family</h2>
+        <div class="test-description">
+            This test demonstrates font style variations using the same font family (DejaVu Sans).
+            It shows that the system correctly handles:
+            <ul class="feature-list">
+                <li>Normal font style</li>
+                <li>Bold font style</li>
+                <li>Italic font style</li>
+                <li>Bold Italic combined style</li>
+            </ul>
+        </div>
+        <img src="test_layer_text_font_styles_result.png" alt="Test 2 Result" class="screenshot">
+        <p>
+            <span class="success-badge">Normal</span>
+            <span class="success-badge">Bold</span>
+            <span class="success-badge">Italic</span>
+            <span class="success-badge">Bold Italic</span>
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Multilingual Text with Different Fonts</h2>
+        <div class="test-description">
+            This test demonstrates multilingual text rendering with different fonts for each language.
+            It shows that:
+            <ul class="feature-list">
+                <li>Different fonts can be used for different languages</li>
+                <li>Special characters (accents) render correctly</li>
+                <li>Font selection works for international content</li>
+            </ul>
+        </div>
+        <img src="test_layer_text_multilingual_result.png" alt="Test 3 Result" class="screenshot">
+        <p>
+            <span class="success-badge">English - Liberation Sans</span>
+            <span class="success-badge">French - Liberation Serif</span>
+            <span class="success-badge">Spanish - DejaVu Sans</span>
+            <span class="success-badge">Italian - DejaVu Serif</span>
+        </p>
+    </div>
+
+    <div class="info-box">
+        <h3>✅ Test Summary</h3>
+        <p>All tests completed successfully! The font family feature is working correctly:</p>
+        <ul class="feature-list">
+            <li>Font families are properly resolved using fontconfig</li>
+            <li>Text layers render correctly with specified fonts</li>
+            <li>Font styles (bold, italic) are handled correctly</li>
+            <li>Text and image layers can be combined seamlessly</li>
+            <li>Multiple text layers with different fonts work together</li>
+            <li>Font fallback mechanism works when fonts are not available</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 Configuration Example</h2>
+        <div class="test-description">
+            Here's an example of how to configure text layers with font families in JSON:
+        </div>
+        <pre style="background-color: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto;">
+{
+  "layers": [
+    {
+      "type": "text",
+      "z_index": 1,
+      "text_config": {
+        "text": "Your Text Here",
+        "font": "DejaVu Sans",
+        "size": 48,
+        "style": "bold",
+        "color": [0, 0, 0],
+        "align": "center",
+        "text_effects": {
+          "outline": {
+            "width": 2,
+            "color": "#FFFFFF"
+          }
+        }
+      },
+      "position": {"x": 400, "y": 225},
+      "anchor_point": "center"
+    }
+  ]
+}
+        </pre>
+    </div>
+
+    <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; text-align: center;">
+        <p>Generated by test_layer_text_font_family.py</p>
+        <p>See LAYER_TEXT_FONT_FAMILY_TEST.md for detailed documentation</p>
+    </footer>
+</body>
+</html>
