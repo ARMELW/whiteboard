@@ -1,8 +1,25 @@
-<?xml version="1.0" encoding="iso-8859-1"?>
-<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-<svg fill="#000000" height="800px" width="800px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
-	 viewBox="0 0 330 330" xml:space="preserve">
-<path id="XMLID_18_" d="M315,150l-247.5,0.001V127.5c0-6.067-3.655-11.537-9.26-13.858c-5.607-2.322-12.058-1.038-16.347,3.252
-	l-37.5,37.5c-5.858,5.858-5.858,15.355,0,21.213l37.5,37.5c2.87,2.87,6.706,4.394,10.61,4.394c1.932,0,3.881-0.374,5.737-1.142
-	c5.605-2.322,9.26-7.791,9.26-13.858v-22.499L315,180c8.284,0,15-6.716,15-15C330,156.716,323.284,150,315,150z"/>
-</svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xml:space="preserve"
+   enable-background="new 0 0 595.28 841.89"
+   viewBox="0 0 776.09175 693.66538"
+   height="693.66541"
+   width="776.0918"
+   y="0px"
+   x="0px"
+   id="Layer_1"
+   version="1.1"><metadata
+     id="metadata11"><rdf:RDF><cc:Work
+         rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
+     id="defs9" /><g
+     transform="matrix(2.7190747,0,0,3.1037754,-326.9763,-1172.9045)"
+     id="g3"><path
+       style="clip-rule:evenodd;fill-rule:evenodd"
+       id="path5"
+       d="m 130.838,381.118 c 1.125,28.749 5.277,54.82 12.695,78.018 7.205,22.53 18.847,40.222 36.812,53.747 52.018,39.16 153.369,16.572 153.369,16.572 l -4.632,-32.843 72.918,42.778 -58.597,58.775 -3.85,-27.303 c 0,0 -100.347,18.529 -163.905,-34.881 -37.659,-31.646 -53.293,-84.021 -51.593,-153.962 0.266,-0.247 4.728,-0.908 6.783,-0.901 z" /></g></svg>
